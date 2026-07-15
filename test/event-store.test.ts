@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, readFileSync, appendFileSync } from 'node:fs';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { mkdtempSync, rmSync, readFileSync, appendFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { EventStore } from '../src/server/event-store.js';
@@ -74,6 +74,27 @@ describe('EventStore', () => {
     expect(r3.previousStatus).toBe('running');
   });
 
+  it('returns the previous blocked_reason from append() alongside previousStatus', () => {
+    const store = new EventStore(logPath);
+    const r1 = store.append(
+      makeEvent({
+        status: 'needs-review',
+        blocked_reason: 'approve write to foo.ts',
+        timestamp: '2026-01-01T00:00:00.000Z',
+      }),
+    );
+    expect(r1.previousBlockedReason).toBeUndefined();
+
+    const r2 = store.append(
+      makeEvent({
+        status: 'needs-review',
+        blocked_reason: 'approve write to bar.ts',
+        timestamp: '2026-01-01T00:01:00.000Z',
+      }),
+    );
+    expect(r2.previousBlockedReason).toBe('approve write to foo.ts');
+  });
+
   it('sorts listSessions by most-recently-updated first', () => {
     const store = new EventStore(logPath);
     store.append(makeEvent({ session_id: 'old', timestamp: '2026-01-01T00:00:00.000Z' }));
@@ -132,9 +153,63 @@ describe('EventStore', () => {
     appendFileSync(logPath, 'not valid json\n');
     appendFileSync(logPath, `${JSON.stringify({ not: 'a valid event' })}\n`);
 
-    const replayed = new EventStore(logPath);
+    const replayed = new EventStore(logPath, { warn: () => {} });
     expect(replayed.size()).toBe(1);
     expect(replayed.getSession('a')).toBeDefined();
+  });
+
+  it('recovers the good entries and warns for a corrupted line in the middle of the log', () => {
+    const good1 = makeEvent({
+      session_id: 'a',
+      status: 'queued',
+      timestamp: '2026-01-01T00:00:00.000Z',
+    });
+    const good2 = makeEvent({
+      session_id: 'b',
+      status: 'running',
+      timestamp: '2026-01-01T00:01:00.000Z',
+    });
+    writeFileSync(
+      logPath,
+      [JSON.stringify(good1), 'this is not valid json at all {{{', JSON.stringify(good2), ''].join(
+        '\n',
+      ),
+    );
+
+    const warnings: string[] = [];
+    const replayed = new EventStore(logPath, { warn: (message) => warnings.push(message) });
+
+    expect(replayed.size()).toBe(2);
+    expect(replayed.getSession('a')?.latest.status).toBe('queued');
+    expect(replayed.getSession('b')?.latest.status).toBe('running');
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('line 2');
+    expect(warnings[0]).toContain(logPath);
+    expect(warnings[0]).toContain('this is not valid json at all');
+  });
+
+  it('truncates a very long corrupt line in the warning instead of dumping it in full', () => {
+    const hugeGarbage = `{"broken": "${'x'.repeat(5000)}`;
+    writeFileSync(logPath, `${hugeGarbage}\n`);
+
+    const warnings: string[] = [];
+    new EventStore(logPath, { warn: (message) => warnings.push(message) });
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]!.length).toBeLessThan(hugeGarbage.length);
+    expect(warnings[0]).toContain('truncated');
+  });
+
+  it('defaults to writing corrupt-line warnings to stderr when no logger is injected', () => {
+    writeFileSync(logPath, 'not valid json\n');
+    const writeSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      new EventStore(logPath);
+      expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('line 1'));
+    } finally {
+      writeSpy.mockRestore();
+    }
   });
 
   it('works purely in-memory when constructed without a log path', () => {

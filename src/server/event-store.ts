@@ -11,6 +11,20 @@ export interface SessionState {
   history: AgentEvent[];
 }
 
+export interface EventStoreOptions {
+  /**
+   * Injectable for tests (and anyone wanting to route this into their own
+   * logging pipeline). Defaults to writing a line to stderr. Called once
+   * per unparseable line encountered during replay -- never throws, so a
+   * torn write or a spot of bit-rot is visible to the operator instead of
+   * silently erasing history.
+   */
+  warn?: (message: string) => void;
+}
+
+/** Longest raw line content ever echoed back in a corrupt-line warning. */
+const CORRUPT_LINE_PREVIEW_LIMIT = 200;
+
 /**
  * In-memory event store keyed by session_id, backed by an append-only JSONL
  * log on disk for durability across restarts. No embedded database: this is
@@ -23,10 +37,12 @@ export interface SessionState {
 export class EventStore extends EventEmitter {
   private readonly sessions = new Map<string, SessionState>();
   private readonly logPath: string | undefined;
+  private readonly warn: (message: string) => void;
 
-  constructor(logPath?: string) {
+  constructor(logPath?: string, options: EventStoreOptions = {}) {
     super();
     this.logPath = logPath;
+    this.warn = options.warn ?? ((message: string) => process.stderr.write(`${message}\n`));
     if (this.logPath) {
       this.ensureLogFile(this.logPath);
       this.replay(this.logPath);
@@ -43,20 +59,39 @@ export class EventStore extends EventEmitter {
     }
   }
 
-  /** Rebuilds in-memory state by replaying every line of the JSONL log. */
+  /**
+   * Rebuilds in-memory state by replaying every line of the JSONL log.
+   * Corrupt/partial lines (e.g. a torn write from a crash mid-append) are
+   * skipped rather than failing startup entirely -- durability is
+   * best-effort, not a hard guarantee for the last unflushed line -- but
+   * each skip is logged so a torn write or bit-rot is visible to the
+   * operator instead of silently erasing history.
+   */
   private replay(logPath: string): void {
     const raw = readFileSync(logPath, 'utf-8');
-    const lines = raw.split('\n').filter((line) => line.trim().length > 0);
-    for (const line of lines) {
+    const rawLines = raw.split('\n');
+    for (let i = 0; i < rawLines.length; i++) {
+      const line = rawLines[i] as string;
+      if (line.trim().length === 0) {
+        continue;
+      }
       try {
         const parsed = agentEventSchema.parse(JSON.parse(line));
         this.applyToMemory(parsed);
       } catch {
-        // Skip corrupt/partial lines (e.g. a torn write from a crash mid-append)
-        // rather than failing startup entirely -- durability best-effort, not
-        // a hard guarantee for the last unflushed line.
+        this.warnCorruptLine(logPath, i + 1, line);
       }
     }
+  }
+
+  private warnCorruptLine(logPath: string, lineNumber: number, line: string): void {
+    const preview =
+      line.length > CORRUPT_LINE_PREVIEW_LIMIT
+        ? `${line.slice(0, CORRUPT_LINE_PREVIEW_LIMIT)}... (truncated, ${line.length} chars total)`
+        : line;
+    this.warn(
+      `taskswarm: skipping unparseable event on line ${lineNumber} of ${logPath}: ${preview}`,
+    );
   }
 
   private applyToMemory(event: AgentEvent): void {
@@ -75,18 +110,25 @@ export class EventStore extends EventEmitter {
 
   /**
    * Appends a validated event to the log (if persistence is enabled) and
-   * updates in-memory state. Returns the previous status for the session
-   * (undefined if this is the session's first event) so callers can decide
-   * whether a state transition warrants a notification.
+   * updates in-memory state. Returns the previous status and blocked_reason
+   * for the session (both undefined if this is the session's first event)
+   * so callers can decide whether a state transition warrants a
+   * notification -- notification dedup keys on the (status, blocked_reason)
+   * pair together, not status alone, so both are needed.
    */
-  append(event: AgentEvent): { previousStatus: AgentEvent['status'] | undefined } {
-    const previousStatus = this.sessions.get(event.session_id)?.latest.status;
+  append(event: AgentEvent): {
+    previousStatus: AgentEvent['status'] | undefined;
+    previousBlockedReason: AgentEvent['blocked_reason'] | undefined;
+  } {
+    const previous = this.sessions.get(event.session_id)?.latest;
+    const previousStatus = previous?.status;
+    const previousBlockedReason = previous?.blocked_reason;
     if (this.logPath) {
       appendFileSync(this.logPath, `${JSON.stringify(event)}\n`, { mode: 0o600 });
     }
     this.applyToMemory(event);
     this.emit('event', event);
-    return { previousStatus };
+    return { previousStatus, previousBlockedReason };
   }
 
   getSession(sessionId: string): SessionState | undefined {

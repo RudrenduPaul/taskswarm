@@ -157,8 +157,8 @@ export function createHttpServer(options: HttpServerOptions): Server {
     }
 
     const event = toAgentEvent(parseResult.data);
-    const { previousStatus } = store.append(event);
-    notify(event, previousStatus, options.notifyOptions);
+    const { previousStatus, previousBlockedReason } = store.append(event);
+    notify(event, previousStatus, previousBlockedReason, options.notifyOptions);
 
     sendJson(res, 201, event);
   }
