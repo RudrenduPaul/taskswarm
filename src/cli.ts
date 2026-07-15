@@ -20,8 +20,19 @@ function printJson(data: unknown): void {
   console.log(JSON.stringify(data, null, 2));
 }
 
-function fail(message: string): void {
-  console.error(`Error: ${message}`);
+/**
+ * Reports a command failure and sets a non-zero exit code. Honors the
+ * CLI's `--json` contract: when the invocation requested `--json`, the
+ * error is printed as parseable `{"error": "<message>"}` on stdout (never
+ * stderr, so a caller piping/parsing stdout still gets valid JSON) instead
+ * of the plain-text `Error: ...` message.
+ */
+function fail(message: string, json = false): void {
+  if (json) {
+    printJson({ error: message });
+  } else {
+    console.error(`Error: ${message}`);
+  }
   process.exitCode = 1;
 }
 
@@ -92,7 +103,7 @@ export function buildProgram(): Command {
         process.on('SIGINT', shutdown);
         process.on('SIGTERM', shutdown);
       } catch (error) {
-        fail(`failed to start server: ${(error as Error).message}`);
+        fail(`failed to start server: ${(error as Error).message}`, opts.json ?? false);
       }
     });
 
@@ -114,7 +125,7 @@ export function buildProgram(): Command {
       try {
         addTask(record);
       } catch (error) {
-        fail(`failed to save task: ${(error as Error).message}`);
+        fail(`failed to save task: ${(error as Error).message}`, opts.json ?? false);
         return;
       }
       if (opts.json) {
@@ -210,7 +221,7 @@ export function buildProgram(): Command {
             console.log(`Reported ${event.session_id} -> ${event.status}`);
           }
         } catch (error) {
-          fail((error as Error).message);
+          fail((error as Error).message, opts.json ?? false);
         }
       },
     );
@@ -233,7 +244,7 @@ export function buildProgram(): Command {
           console.log(newToken);
         }
       } catch (error) {
-        fail(`failed to rotate token: ${(error as Error).message}`);
+        fail(`failed to rotate token: ${(error as Error).message}`, opts.json ?? false);
       }
     });
 
@@ -256,7 +267,10 @@ export function buildProgram(): Command {
         opts: { scope: HookInstallScope; projectDir: string; json?: boolean },
       ) => {
         if (adapterName !== 'claude-code') {
-          fail(`unknown adapter "${adapterName}". Supported adapters: claude-code`);
+          fail(
+            `unknown adapter "${adapterName}". Supported adapters: claude-code`,
+            opts.json ?? false,
+          );
           return;
         }
         try {
@@ -273,7 +287,7 @@ export function buildProgram(): Command {
             console.log(`Claude Code hooks already installed at ${result.settingsPath}`);
           }
         } catch (error) {
-          fail(`failed to install hooks: ${(error as Error).message}`);
+          fail(`failed to install hooks: ${(error as Error).message}`, opts.json ?? false);
         }
       },
     );

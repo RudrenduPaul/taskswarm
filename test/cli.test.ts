@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, rmSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildProgram, runStartCommand, relayClaudeCodeHook } from '../src/cli.js';
@@ -119,6 +119,31 @@ describe('CLI commands', () => {
       expect(process.exitCode).toBe(1);
       expect(errors.join('\n')).toContain('unknown adapter');
     });
+
+    it('honors --json on the error path: a corrupt settings.json prints parseable JSON with an error field on stdout, not plain text on stderr', async () => {
+      const projectDir = mkdtempSync(join(tmpdir(), 'taskswarm-project-'));
+      try {
+        const claudeDir = join(projectDir, '.claude');
+        mkdirSync(claudeDir, { recursive: true });
+        writeFileSync(join(claudeDir, 'settings.json'), '{ not valid json,,, }');
+
+        const { logs, errors } = await run([
+          'hooks',
+          'install',
+          'claude-code',
+          '--project-dir',
+          projectDir,
+          '--json',
+        ]);
+
+        expect(process.exitCode).toBe(1);
+        expect(errors).toHaveLength(0);
+        const parsed = JSON.parse(logs.join('\n')) as { error: string };
+        expect(parsed.error).toContain('not valid JSON');
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+      }
+    });
   });
 
   describe('agent report-status', () => {
@@ -192,6 +217,24 @@ describe('CLI commands', () => {
       ]);
       expect(process.exitCode).toBe(1);
       expect(errors.join('\n')).toMatch(/could not reach|server/i);
+    });
+
+    it('honors --json on the error path: prints parseable JSON with an error field on stdout, nothing on stderr', async () => {
+      const { logs, errors } = await run([
+        'agent',
+        'report-status',
+        '--task',
+        'task-x',
+        '--repo',
+        '/repo/a',
+        '--state',
+        'running',
+        '--json',
+      ]);
+      expect(process.exitCode).toBe(1);
+      expect(errors).toHaveLength(0);
+      const parsed = JSON.parse(logs.join('\n')) as { error: string };
+      expect(parsed.error).toMatch(/could not reach|server/i);
     });
   });
 
