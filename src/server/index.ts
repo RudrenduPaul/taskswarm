@@ -3,6 +3,7 @@ import { EventStore } from './event-store.js';
 import { createHttpServer } from './http-server.js';
 import { getEventLogPath, loadOrCreateConfig } from './config.js';
 import type { TaskSwarmConfig } from './config.js';
+import type { NotifyOptions } from '../notify/index.js';
 
 export interface RunningServer {
   server: Server;
@@ -17,20 +18,29 @@ export interface StartServerOptions {
   config?: TaskSwarmConfig;
   /** Override the JSONL log path (mainly for tests). Pass undefined to disable persistence entirely. */
   logPath?: string | null;
+  /**
+   * Override the notification channels (mainly for tests, so a real OS
+   * notification -- or its console/bell fallback -- never fires as a side
+   * effect of exercising the API). If omitted, derives from config.ntfy.
+   */
+  notifyOptions?: NotifyOptions;
 }
 
 /** Boots the event store + HTTP/SSE server and starts listening. */
 export async function startServer(options: StartServerOptions = {}): Promise<RunningServer> {
   const config = options.config ?? loadOrCreateConfig();
   const logPath = options.logPath === null ? undefined : (options.logPath ?? getEventLogPath());
+  const notifyOptions =
+    options.notifyOptions ??
+    ({
+      ...(config.ntfy.enabled ? { ntfy: config.ntfy } : {}),
+    } satisfies NotifyOptions);
 
   const store = new EventStore(logPath);
   const server = createHttpServer({
     store,
     token: config.token,
-    notifyOptions: {
-      ...(config.ntfy.enabled ? { ntfy: config.ntfy } : {}),
-    },
+    notifyOptions,
   });
 
   await new Promise<void>((resolve, reject) => {

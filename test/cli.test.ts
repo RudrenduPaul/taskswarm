@@ -125,7 +125,7 @@ describe('CLI commands', () => {
     let running: RunningServer;
 
     beforeEach(async () => {
-      running = await startServer({ logPath: null });
+      running = await startServer({ logPath: null, notifyOptions: { osNotifier: () => {} } });
     });
 
     afterEach(async () => {
@@ -231,7 +231,7 @@ describe('CLI commands', () => {
     let running: RunningServer;
 
     beforeEach(async () => {
-      running = await startServer({ logPath: null });
+      running = await startServer({ logPath: null, notifyOptions: { osNotifier: () => {} } });
     });
 
     afterEach(async () => {

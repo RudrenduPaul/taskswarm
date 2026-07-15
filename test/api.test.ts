@@ -23,7 +23,7 @@ describe('HTTP API', () => {
 
   beforeEach(async () => {
     store = new EventStore(); // in-memory only, no log file
-    server = createHttpServer({ store, token: TOKEN });
+    server = createHttpServer({ store, token: TOKEN, notifyOptions: { osNotifier: () => {} } });
     await new Promise<void>((resolve) => {
       server.listen(0, '127.0.0.1', () => resolve());
     });
