@@ -265,4 +265,34 @@ describe('installClaudeCodeHooks', () => {
     });
     expect(result.settingsPath).toBe(join(homeDir, '.claude', 'settings.json'));
   });
+
+  it('raises a clear AdapterValidationError (not a raw SyntaxError) for a malformed settings.json, leaving it untouched', () => {
+    const claudeDir = join(projectDir, '.claude');
+    mkdirSync(claudeDir, { recursive: true });
+    const settingsPath = join(claudeDir, 'settings.json');
+    const malformedContent = '{ "hooks": { totally not valid json,,, }';
+    writeFileSync(settingsPath, malformedContent);
+
+    let thrown: unknown;
+    try {
+      installClaudeCodeHooks({
+        scope: 'project',
+        projectDir,
+        homeDir,
+        nodeExecPath,
+        cliScriptPath,
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(AdapterValidationError);
+    expect((thrown as Error).message).toContain(settingsPath);
+    expect((thrown as Error).message).toContain('not valid JSON');
+    expect((thrown as Error).name).toBe('AdapterValidationError');
+
+    // The original malformed file must be left exactly as it was -- never
+    // overwritten by a partially-completed install.
+    expect(readFileSync(settingsPath, 'utf-8')).toBe(malformedContent);
+  });
 });

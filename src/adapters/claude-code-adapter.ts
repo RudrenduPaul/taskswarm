@@ -169,7 +169,14 @@ function readSettings(path: string): ClaudeSettings {
   if (raw.length === 0) {
     return {};
   }
-  return JSON.parse(raw) as ClaudeSettings;
+  try {
+    return JSON.parse(raw) as ClaudeSettings;
+  } catch (error) {
+    throw new AdapterValidationError(
+      `${path} is not valid JSON, so TaskSwarm can't safely merge hooks into it. ` +
+        `Fix or remove the file, then re-run hooks install. (${(error as Error).message})`,
+    );
+  }
 }
 
 /** Finds an existing relay hook entry (by its stable marker), if any. */
