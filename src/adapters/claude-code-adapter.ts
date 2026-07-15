@@ -113,8 +113,38 @@ interface ClaudeSettings {
   [key: string]: unknown;
 }
 
-/** The relay command TaskSwarm installs into Claude Code's Stop/Notification hooks. */
-export const RELAY_COMMAND = 'npx --yes taskswarm-cli hooks claude-code-relay';
+/**
+ * A stable substring every relay command contains, used to find and replace
+ * a previously installed relay hook (e.g. after an upgrade moves the CLI's
+ * install path) without leaving stale or duplicate entries behind.
+ */
+const RELAY_MARKER = 'hooks claude-code-relay';
+
+/**
+ * Builds the exact command Claude Code should run for the Stop/Notification
+ * hooks: the currently-running Node executable invoking the currently-
+ * installed CLI script directly, both as absolute, quoted paths.
+ *
+ * Deliberately NOT `npx --yes taskswarm-cli ...`: that form re-resolves
+ * against the npm registry on every single hook fire (Stop fires on every
+ * Claude Code turn), with no version pin and no confirmation prompt. Before
+ * the package is even published, that is an open name-squatting window --
+ * whoever publishes `taskswarm-cli` first controls what runs. After
+ * publish, it's a standing supply-chain risk: any compromised maintainer
+ * token or bad release propagates to every installed user automatically.
+ * Invoking the exact binary the user already has on disk means the hook
+ * only ever runs code that was already trusted at install time.
+ */
+export function buildRelayCommand(nodeExecPath: string, cliScriptPath: string): string {
+  return `${quoteShellArg(nodeExecPath)} ${quoteShellArg(cliScriptPath)} hooks claude-code-relay`;
+}
+
+function quoteShellArg(value: string): string {
+  // POSIX-safe single-quote escaping: close the quote, emit an escaped
+  // literal quote, reopen the quote. Handles spaces and any shell
+  // metacharacters in the path (e.g. install dirs with spaces).
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
 
 function settingsPathForScope(
   scope: HookInstallScope,
@@ -142,22 +172,46 @@ function readSettings(path: string): ClaudeSettings {
   return JSON.parse(raw) as ClaudeSettings;
 }
 
-function hasRelayHook(groups: HookGroup[] | undefined): boolean {
-  if (!groups) return false;
-  return groups.some((group) => group.hooks.some((hook) => hook.command === RELAY_COMMAND));
+/** Finds an existing relay hook entry (by its stable marker), if any. */
+function findRelayHookCommand(groups: HookGroup[] | undefined): string | undefined {
+  if (!groups) return undefined;
+  for (const group of groups) {
+    const hook = group.hooks.find((h) => h.command.includes(RELAY_MARKER));
+    if (hook) return hook.command;
+  }
+  return undefined;
 }
 
-function addRelayHook(settings: ClaudeSettings, event: 'Stop' | 'Notification'): boolean {
+/**
+ * Installs or repoints the relay hook for one event. Idempotent when the
+ * resolved command hasn't changed; self-healing (replaces the stale entry
+ * rather than adding a duplicate) when it has, e.g. after the CLI's install
+ * path moved between an upgrade.
+ */
+function addRelayHook(
+  settings: ClaudeSettings,
+  event: 'Stop' | 'Notification',
+  relayCommand: string,
+): boolean {
   settings.hooks ??= {};
   const existing = settings.hooks[event];
-  if (hasRelayHook(existing)) {
+  const currentCommand = findRelayHookCommand(existing);
+  if (currentCommand === relayCommand) {
     return false;
   }
-  const group: HookGroup = {
+
+  const groupsWithoutStaleRelay = (existing ?? [])
+    .map((group) => ({
+      ...group,
+      hooks: group.hooks.filter((hook) => !hook.command.includes(RELAY_MARKER)),
+    }))
+    .filter((group) => group.hooks.length > 0);
+
+  const newGroup: HookGroup = {
     matcher: '',
-    hooks: [{ type: 'command', command: RELAY_COMMAND, timeout: 10 }],
+    hooks: [{ type: 'command', command: relayCommand, timeout: 10 }],
   };
-  settings.hooks[event] = [...(existing ?? []), group];
+  settings.hooks[event] = [...groupsWithoutStaleRelay, newGroup];
   return true;
 }
 
@@ -165,6 +219,10 @@ export interface InstallHooksOptions {
   scope: HookInstallScope;
   projectDir: string;
   homeDir: string;
+  /** The Node executable to invoke. Defaults to `process.execPath`. */
+  nodeExecPath?: string;
+  /** The absolute path to the currently-installed CLI script. Defaults to `process.argv[1]`. */
+  cliScriptPath?: string;
 }
 
 export interface InstallHooksResult {
@@ -175,15 +233,28 @@ export interface InstallHooksResult {
 /**
  * Writes (merging with any existing content) Stop and Notification hook
  * entries into the appropriate Claude Code settings.json, pointing at
- * TaskSwarm's relay command. Idempotent: running it again when the hooks
- * are already installed is a no-op (changed: false).
+ * TaskSwarm's relay command -- resolved to the exact Node binary and CLI
+ * script already installed on this machine, never a floating registry
+ * reference. Idempotent: running it again when the hooks are already
+ * installed and pointing at the same resolved path is a no-op
+ * (changed: false); repoints (without duplicating) if the resolved path
+ * has changed since the last install.
  */
 export function installClaudeCodeHooks(options: InstallHooksOptions): InstallHooksResult {
+  const nodeExecPath = options.nodeExecPath ?? process.execPath;
+  const cliScriptPath = options.cliScriptPath ?? process.argv[1];
+  if (!cliScriptPath) {
+    throw new AdapterValidationError(
+      'could not resolve the running CLI script path to install a hook against',
+    );
+  }
+  const relayCommand = buildRelayCommand(nodeExecPath, cliScriptPath);
+
   const settingsPath = settingsPathForScope(options.scope, options.projectDir, options.homeDir);
   const settings = readSettings(settingsPath);
 
-  const stopChanged = addRelayHook(settings, 'Stop');
-  const notificationChanged = addRelayHook(settings, 'Notification');
+  const stopChanged = addRelayHook(settings, 'Stop', relayCommand);
+  const notificationChanged = addRelayHook(settings, 'Notification', relayCommand);
   const changed = stopChanged || notificationChanged;
 
   if (changed) {
