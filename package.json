@@ -1,0 +1,73 @@
+{
+  "name": "taskswarm-cli",
+  "version": "0.1.0",
+  "description": "Self-hosted, event-driven coordination for parallel coding-agent sessions (Claude Code, Codex, Cursor). Push notifications the instant a session blocks, needs review, fails, or finishes, plus a live local status page.",
+  "keywords": [
+    "coding-agent",
+    "multi-agent",
+    "claude-code",
+    "orchestration",
+    "cli",
+    "notifications",
+    "self-hosted",
+    "dashboard",
+    "kanban"
+  ],
+  "homepage": "https://github.com/RudrenduPaul/taskswarm",
+  "bugs": {
+    "url": "https://github.com/RudrenduPaul/taskswarm/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RudrenduPaul/taskswarm.git"
+  },
+  "license": "MIT",
+  "author": "Rudrendu Paul",
+  "type": "module",
+  "bin": {
+    "taskswarm": "./dist/cli.js",
+    "taskswarm-cli": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js start",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "@types/node": "^20.14.15",
+    "@typescript-eslint/eslint-plugin": "^8.1.0",
+    "@typescript-eslint/parser": "^8.1.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^9.9.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "tsx": "^4.17.0",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.1.0",
+    "vitest": "^4.1.10"
+  }
+}
