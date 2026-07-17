@@ -11,6 +11,10 @@ import { notify } from '../notify/index.js';
 import type { NotifyOptions } from '../notify/index.js';
 
 const MAX_BODY_BYTES = 64 * 1024; // 64KiB is generous for a single event envelope
+// Caps concurrent /live SSE connections so a client (malicious or just
+// leaked-token) can't exhaust server sockets/memory by opening unbounded
+// long-lived connections.
+const MAX_SSE_CLIENTS = 64;
 
 const uiDir = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'ui');
 
@@ -47,18 +51,26 @@ function readBody(req: IncomingMessage): Promise<string> {
   });
 }
 
-function isAuthorized(req: IncomingMessage, token: string, url: URL): boolean {
+function isAuthorized(
+  req: IncomingMessage,
+  token: string,
+  url: URL,
+  allowQueryToken: boolean,
+): boolean {
   const headerToken = extractBearerToken(req.headers.authorization);
   if (headerToken && tokensMatch(headerToken, token)) {
     return true;
   }
-  // SSE clients (EventSource) cannot set custom headers, so /live also
-  // accepts the token as a query parameter. Documented trade-off: fine for
-  // a server that binds to 127.0.0.1 by default; callers who bind to a LAN
-  // address should be aware the token can appear in local access logs.
-  const queryToken = url.searchParams.get('token');
-  if (queryToken && tokensMatch(queryToken, token)) {
-    return true;
+  // SSE clients (EventSource) cannot set custom headers, so /live -- and
+  // only /live -- also accepts the token as a query parameter. Every other
+  // route requires the Authorization header, since a query-string token
+  // lands in local access logs / shell history / browser history and there
+  // is no EventSource-style constraint forcing it there for POST/GET /events.
+  if (allowQueryToken) {
+    const queryToken = url.searchParams.get('token');
+    if (queryToken && tokensMatch(queryToken, token)) {
+      return true;
+    }
   }
   return false;
 }
@@ -95,7 +107,7 @@ export function createHttpServer(options: HttpServerOptions): Server {
     }
 
     if (url.pathname === '/events') {
-      if (!isAuthorized(req, token, url)) {
+      if (!isAuthorized(req, token, url, false)) {
         sendJson(res, 401, { error: 'unauthorized' });
         return;
       }
@@ -112,7 +124,7 @@ export function createHttpServer(options: HttpServerOptions): Server {
     }
 
     if (url.pathname === '/live' && method === 'GET') {
-      if (!isAuthorized(req, token, url)) {
+      if (!isAuthorized(req, token, url, true)) {
         sendJson(res, 401, { error: 'unauthorized' });
         return;
       }
@@ -168,6 +180,10 @@ export function createHttpServer(options: HttpServerOptions): Server {
   }
 
   function handleLive(req: IncomingMessage, res: ServerResponse): void {
+    if (sseClients.size >= MAX_SSE_CLIENTS) {
+      sendJson(res, 503, { error: 'too many concurrent /live connections' });
+      return;
+    }
     res.writeHead(200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache',
