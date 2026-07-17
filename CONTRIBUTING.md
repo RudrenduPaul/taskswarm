@@ -92,7 +92,7 @@ Include:
 
 ## No internal build docs
 
-This repository does not contain and should not contain internal planning, review-process, or business-strategy documents (a root `CLAUDE.md`, `TODOS.md`, `BRANCH_PROTECTION.md`, or similar). If you're contributing tooling config for AI coding assistants, keep it scoped to genuine engineering standards (lint, types, tests), not internal process notes.
+This repository does not contain and should not contain internal planning, review-process, or business-strategy documents. If you're contributing tooling config for AI coding assistants, keep it scoped to genuine engineering standards (lint, types, tests), not internal process notes.
 
 ## License
 
