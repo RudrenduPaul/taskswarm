@@ -6,10 +6,20 @@ TaskSwarm is a self-hosted event server that fixes that. Every agent session rep
 
 [![CI](https://github.com/RudrenduPaul/taskswarm/actions/workflows/ci.yml/badge.svg)](https://github.com/RudrenduPaul/taskswarm/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/taskswarm.svg)](https://pypi.org/project/taskswarm/)
 
 ## Install
 
-This repo hasn't been published to npm yet. Until it is, run it from source:
+TaskSwarm ships as two independent, equally first-class distributions of
+the same event server -- an npm package (this codebase, TypeScript) and a
+PyPI package (`taskswarm`, Python, `python/`). Pick whichever fits your
+toolchain; the server and CLI don't need to be the same distribution as
+whatever agent you're reporting from.
+
+**npm (JS/TS):** this package hasn't been published to npm yet -- the
+code is ready, but the first publish needs a real two-factor
+confirmation the maintainer has to run from their own terminal, unrelated
+to code readiness. Until then, run it from source:
 
 ```bash
 git clone https://github.com/RudrenduPaul/taskswarm.git
@@ -20,6 +30,26 @@ node dist/cli.js start
 ```
 
 Once published, this will collapse to a single `npx taskswarm-cli start`.
+
+**pip (Python):** the Python port is fully built, tested (117 passing
+tests), and gate-reviewed in `python/`, with a built wheel and sdist ready
+to publish. The `pip install taskswarm` publish itself is pending: PyPI's
+account-level "too many new projects created" rate limit blocked the
+first upload attempt for this account, unrelated to code readiness. Until
+that clears, install from source:
+
+```bash
+git clone https://github.com/RudrenduPaul/taskswarm.git
+cd taskswarm/python
+pip install -e .
+taskswarm start
+```
+
+Once published, this collapses to `pip install taskswarm`. See
+[python/README.md](./python/README.md) for the Python-specific guide. Both
+distributions speak the same wire protocol (the same event schema, the
+same notification-dedup rule), so a Python-started server and an npm CLI
+reporting into it (or vice versa) work together without issue.
 
 ## What it does
 
@@ -168,7 +198,7 @@ npm run typecheck
 npm run test:coverage
 ```
 
-All three must pass clean. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full checklist.
+All three must pass clean. For the Python distribution, `cd python && pip install -e ".[dev]" && pytest`. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full checklist covering both codebases.
 
 ## License
 

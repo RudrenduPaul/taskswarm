@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TaskSwarm</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0b0d12;
+        --fg: #e6e8ee;
+        --muted: #8b93a7;
+        --border: #232733;
+        --row: #12151d;
+        --accent: #5b8cff;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f7f8fa;
+          --fg: #14171f;
+          --muted: #5b6272;
+          --border: #e1e4ea;
+          --row: #ffffff;
+          --accent: #2f5fe0;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        padding: 2rem 1.5rem 4rem;
+      }
+      header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        max-width: 1100px;
+        margin: 0 auto 1.5rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      #conn-status {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      #conn-status.live {
+        color: #35c26a;
+      }
+      #conn-status.down {
+        color: #e0553f;
+      }
+      table {
+        width: 100%;
+        max-width: 1100px;
+        margin: 0 auto;
+        border-collapse: collapse;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      thead th {
+        text-align: left;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        padding: 0.6rem 0.9rem;
+        border-bottom: 1px solid var(--border);
+      }
+      tbody td {
+        padding: 0.7rem 0.9rem;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.9rem;
+        background: var(--row);
+      }
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+      .status-pill {
+        display: inline-block;
+        padding: 0.15rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+      .status-queued {
+        background: #3a3f4d;
+        color: #c7cbd6;
+      }
+      .status-running {
+        background: #1f3a63;
+        color: #8fb8ff;
+      }
+      .status-blocked {
+        background: #5a3a17;
+        color: #ffbd6b;
+      }
+      .status-needs-review {
+        background: #5a3a17;
+        color: #ffd76b;
+      }
+      .status-done {
+        background: #17402a;
+        color: #6ee6a2;
+      }
+      .status-failed {
+        background: #4a1c1c;
+        color: #ff8f8f;
+      }
+      #empty {
+        max-width: 1100px;
+        margin: 3rem auto;
+        text-align: center;
+        color: var(--muted);
+      }
+      code {
+        font-size: 0.85em;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>TaskSwarm</h1>
+      <span id="conn-status">connecting&hellip;</span>
+    </header>
+    <table id="sessions-table">
+      <thead>
+        <tr>
+          <th>Session</th>
+          <th>Repo</th>
+          <th>Agent</th>
+          <th>Status</th>
+          <th>Last event</th>
+        </tr>
+      </thead>
+      <tbody id="sessions-body"></tbody>
+    </table>
+    <p id="empty" hidden>
+      No sessions tracked yet. Report one with <code>taskswarm agent report-status</code>.
+    </p>
+
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var token = params.get('token') || '';
+        var tbody = document.getElementById('sessions-body');
+        var empty = document.getElementById('empty');
+        var connStatus = document.getElementById('conn-status');
+        var sessions = new Map();
+
+        function statusClass(status) {
+          return 'status-pill status-' + status;
+        }
+
+        function render() {
+          var rows = Array.from(sessions.values()).sort(function (a, b) {
+            return Date.parse(b.timestamp) - Date.parse(a.timestamp);
+          });
+          empty.hidden = rows.length > 0;
+          tbody.innerHTML = '';
+          rows.forEach(function (row) {
+            var tr = document.createElement('tr');
+            var cells = [
+              row.session_id,
+              row.repo,
+              row.agent_type,
+              '<span class="' + statusClass(row.status) + '">' + row.status + '</span>',
+              new Date(row.timestamp).toLocaleString(),
+            ];
+            cells.forEach(function (cell, i) {
+              var td = document.createElement('td');
+              if (i === 3) {
+                td.innerHTML = cell;
+              } else {
+                td.textContent = cell;
+              }
+              tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+          });
+        }
+
+        function applyEvent(event) {
+          sessions.set(event.session_id, event);
+          render();
+        }
+
+        function loadInitial() {
+          fetch('/events', { headers: { Authorization: 'Bearer ' + token } })
+            .then(function (res) {
+              if (!res.ok) throw new Error('failed to load /events: ' + res.status);
+              return res.json();
+            })
+            .then(function (data) {
+              (data.sessions || []).forEach(function (s) {
+                sessions.set(s.session_id, s.latest);
+              });
+              render();
+            })
+            .catch(function () {
+              connStatus.textContent = 'failed to load sessions';
+              connStatus.className = 'down';
+            });
+        }
+
+        function connectLive() {
+          var url = '/live?token=' + encodeURIComponent(token);
+          var source = new EventSource(url);
+          source.addEventListener('open', function () {
+            connStatus.textContent = 'live';
+            connStatus.className = 'live';
+          });
+          source.addEventListener('message', function (evt) {
+            try {
+              var event = JSON.parse(evt.data);
+              applyEvent(event);
+            } catch (e) {
+              /* ignore malformed frame */
+            }
+          });
+          source.addEventListener('error', function () {
+            connStatus.textContent = 'reconnecting…';
+            connStatus.className = 'down';
+          });
+        }
+
+        loadInitial();
+        connectLive();
+      })();
+    </script>
+  </body>
+</html>
