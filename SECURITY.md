@@ -46,10 +46,10 @@ security posture plainly, including what it does not protect against.
 
 ## Supported versions
 
-| Package | Version | Supported |
-| --- | --- | --- |
-| `taskswarm-cli` (npm) | 0.1.x | Yes (unpublished as of this writing) |
-| `taskswarm` (PyPI) | 0.1.x | Yes |
+| Package               | Version | Supported                            |
+| --------------------- | ------- | ------------------------------------ |
+| `taskswarm-cli` (npm) | 0.1.x   | Yes (unpublished as of this writing) |
+| `taskswarm` (PyPI)    | 0.1.x   | Yes                                  |
 
 Both distributions are pre-1.0 and under active development. Security
 fixes land on the latest `0.1.x` release of each; there is no older
@@ -74,7 +74,7 @@ for this repository. Include:
 ## What counts as in scope
 
 - Any way to bypass the bearer-token check on `POST /events`, `GET
-  /events`, or `GET /live`.
+/events`, or `GET /live`.
 - Any code path where content from a request (event fields, hook payload
   JSON, `.claude/settings.json` content read back during `hooks install`)
   is executed, evaluated, or dynamically imported, rather than only read,

@@ -23,7 +23,7 @@ together. See `python/README.md` for Python-specific usage.
 - `taskswarm start` / `taskswarm task add` / `taskswarm task list` /
   `taskswarm agent report-status` / `taskswarm token rotate` /
   `taskswarm hooks install <adapter>` / `taskswarm hooks
-  claude-code-relay` CLI, with the same subcommands, flags, and `--json`
+claude-code-relay` CLI, with the same subcommands, flags, and `--json`
   output contract as the npm CLI. Console scripts `taskswarm` and
   `taskswarm-cli` both install, matching the two `bin` entries the npm
   package ships.

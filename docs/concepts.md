@@ -40,16 +40,16 @@ runtime dependencies, so there's no schema-validation library to lean on).
 
 ## The event schema
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `event_id` | UUID | Stamped by the server if omitted from the input. |
-| `session_id` | string, 1-256 chars | The task/session identifier you choose. |
-| `repo` | string, 1-1024 chars | Path to the repository the session operates on. |
-| `agent_type` | `claude-code` \| `codex` \| `cursor` \| `generic` | Which adapter produced the event. |
-| `status` | `queued` \| `running` \| `blocked` \| `needs-review` \| `done` \| `failed` | Current lifecycle state. |
-| `blocked_reason` | string, up to 4096 chars, optional | Human-readable reason, shown for `blocked`/`needs-review`/`failed`. |
-| `timestamp` | ISO-8601 datetime with UTC offset | Stamped by the server if omitted from the input. |
-| `schema_version` | positive integer | Currently `1`. Bumped only for a non-additive shape change. |
+| Field            | Type                                                                       | Notes                                                               |
+| ---------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `event_id`       | UUID                                                                       | Stamped by the server if omitted from the input.                    |
+| `session_id`     | string, 1-256 chars                                                        | The task/session identifier you choose.                             |
+| `repo`           | string, 1-1024 chars                                                       | Path to the repository the session operates on.                     |
+| `agent_type`     | `claude-code` \| `codex` \| `cursor` \| `generic`                          | Which adapter produced the event.                                   |
+| `status`         | `queued` \| `running` \| `blocked` \| `needs-review` \| `done` \| `failed` | Current lifecycle state.                                            |
+| `blocked_reason` | string, up to 4096 chars, optional                                         | Human-readable reason, shown for `blocked`/`needs-review`/`failed`. |
+| `timestamp`      | ISO-8601 datetime with UTC offset                                          | Stamped by the server if omitted from the input.                    |
+| `schema_version` | positive integer                                                           | Currently `1`. Bumped only for a non-additive shape change.         |
 
 ## Notification-dedup rule
 
@@ -59,9 +59,9 @@ of these fires a notification; `queued` and `running` never do.
 
 Dedup keys on the **`(status, blocked_reason)` pair**, not status alone:
 
-- Two consecutive `blocked` events with the *same* `blocked_reason` are
+- Two consecutive `blocked` events with the _same_ `blocked_reason` are
   treated as a repeat -- no second notification.
-- Two consecutive `needs-review` events with *different* `blocked_reason`
+- Two consecutive `needs-review` events with _different_ `blocked_reason`
   values (e.g. two different permission prompts in a row) both notify,
   even though the status itself didn't change -- each one is a genuinely
   new thing a human should see.

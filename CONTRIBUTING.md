@@ -70,7 +70,7 @@ pytest
    JSON in a script depends on the shape staying stable.
 3. Keep `--json` output parity: every subcommand that prints human-readable output should also support `--json` with a stable, documented shape, including on error paths.
 4. No `@ts-ignore` or `@ts-expect-error` (TypeScript) or bare `except:
-   pass` (Python) without a comment explaining why.
+pass` (Python) without a comment explaining why.
 
 ## Reporting a security issue
 
