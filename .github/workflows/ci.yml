@@ -46,3 +46,28 @@ jobs:
         run: |
           node dist/cli.js --help
           node dist/cli.js --version
+
+  python-ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.12', '3.13']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install taskswarm (editable, dev extras)
+        run: pip install -e "./python[dev]"
+
+      - name: Test
+        run: pytest python/tests
+
+      - name: Smoke test built CLI
+        run: |
+          taskswarm --help
+          taskswarm --version
