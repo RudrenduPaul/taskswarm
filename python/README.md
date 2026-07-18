@@ -27,7 +27,8 @@ standard library.
 
 ## Install
 
-Live on PyPI as `taskswarm`:
+Live on PyPI as `taskswarm-cli` (renamed from the original `taskswarm`
+package, which has stopped receiving updates and points here):
 
 ```bash
 pip install taskswarm-cli

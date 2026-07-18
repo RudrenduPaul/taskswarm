@@ -7,13 +7,13 @@ TaskSwarm is a self-hosted event server that fixes that. Every agent session rep
 [![CI](https://github.com/RudrenduPaul/taskswarm/actions/workflows/ci.yml/badge.svg)](https://github.com/RudrenduPaul/taskswarm/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/taskswarm-cli.svg)](https://www.npmjs.com/package/taskswarm-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![PyPI version](https://img.shields.io/pypi/v/taskswarm.svg)](https://pypi.org/project/taskswarm/)
+[![PyPI version](https://img.shields.io/pypi/v/taskswarm-cli.svg)](https://pypi.org/project/taskswarm-cli/)
 
 ## Install
 
 TaskSwarm ships as two independent, equally first-class distributions of
 the same event server -- an npm package (this codebase, TypeScript) and a
-PyPI package (`taskswarm`, Python, `python/`). Pick whichever fits your
+PyPI package (`taskswarm-cli`, Python, `python/`). Pick whichever fits your
 toolchain; the server and CLI don't need to be the same distribution as
 whatever agent you're reporting from.
 
@@ -27,10 +27,12 @@ taskswarm start
 Prefer not to install globally? `npx taskswarm-cli start` runs the same
 binary with no install step.
 
-**pip (Python):** live on PyPI as `taskswarm`:
+**pip (Python):** live on PyPI as `taskswarm-cli` (renamed from the
+original `taskswarm` package, which has stopped receiving updates and
+points here):
 
 ```bash
-pip install taskswarm
+pip install taskswarm-cli
 taskswarm start
 ```
 
