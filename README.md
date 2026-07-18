@@ -5,6 +5,7 @@ You're running three Claude Code sessions across two repos. One of them hit a pe
 TaskSwarm is a self-hosted event server that fixes that. Every agent session reports its state, and the instant one goes blocked, needs review, fails, or finishes, TaskSwarm fires a local OS notification and updates a live status page. No polling terminals. No account. No cloud dependency.
 
 [![CI](https://github.com/RudrenduPaul/taskswarm/actions/workflows/ci.yml/badge.svg)](https://github.com/RudrenduPaul/taskswarm/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/taskswarm-cli.svg)](https://www.npmjs.com/package/taskswarm-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![PyPI version](https://img.shields.io/pypi/v/taskswarm.svg)](https://pypi.org/project/taskswarm/)
 
@@ -16,20 +17,15 @@ PyPI package (`taskswarm`, Python, `python/`). Pick whichever fits your
 toolchain; the server and CLI don't need to be the same distribution as
 whatever agent you're reporting from.
 
-**npm (JS/TS):** this package hasn't been published to npm yet -- the
-code is ready, but the first publish needs a real two-factor
-confirmation the maintainer has to run from their own terminal, unrelated
-to code readiness. Until then, run it from source:
+**npm (JS/TS):** live on npm as `taskswarm-cli`:
 
 ```bash
-git clone https://github.com/RudrenduPaul/taskswarm.git
-cd taskswarm
-npm install
-npm run build
-node dist/cli.js start
+npm install -g taskswarm-cli
+taskswarm start
 ```
 
-Once published, this will collapse to a single `npx taskswarm-cli start`.
+Prefer not to install globally? `npx taskswarm-cli start` runs the same
+binary with no install step.
 
 **pip (Python):** the Python port is fully built, tested (117 passing
 tests), and gate-reviewed in `python/`, with a built wheel and sdist ready
@@ -161,6 +157,21 @@ TaskSwarm isn't trying to out-board any of these three. paperclip and Multica ar
 - _Total time-to-first-board_ (a real first-time user, fresh `git clone`): `npm install` (2.05 s) plus `npm run build` (0.78 s) plus `start` to live page reachable (0.15 s), totaling **2.99 s**, on a machine with a warm local npm cache. Target was under 60 seconds; actual measured result is roughly 20x under that.
 
 Numbers not listed for the other three tools are not estimated placeholders. They are genuinely not measured, because running their full stacks (Rust, PostgreSQL, Docker Compose) wasn't in scope for this pass. Their star counts, license terms, and maintenance status above are verified live facts, not benchmarks.
+
+### Where TaskSwarm sits in the wider 2026 field
+
+paperclip, Vibe Kanban, and Multica are the closest full-board comparables, but they're not the whole picture. Running several coding agents in parallel became one of the most active corners of open source in 2026: Anthropic's own [2026 Agentic Coding Trends Report](https://resources.anthropic.com/2026-agentic-coding-trends-report) names multi-agent coordination as one of eight trends reshaping how software gets built, and OpenAI reported [Codex alone crossed 5 million weekly users](https://www.constellationr.com/insights/news/openai-touts-broadening-codex-usage-5-million-weekly-active-users) by June 2026. A whole wave of orchestration UIs shipped alongside that growth. Here's where TaskSwarm sits next to the newer parallel-agent tools that cover a similar workflow with a different shape, verified live 2026-07-18:
+
+| Tool | Stars | License | What it actually is |
+| --- | --- | --- | --- |
+| **TaskSwarm** | pre-launch | MIT | Notification-only event server; no UI you have to keep open |
+| [Claude Squad](https://github.com/smtg-ai/claude-squad) | 8,135 | AGPL-3.0 | tmux-based terminal manager for parallel agent sessions, no notification feature found in its README |
+| [Superset](https://github.com/superset-sh/superset) | 12,483 | Elastic License 2.0 (source-available) | Full code editor built around parallel agents; "get notified when they need attention" per its own README |
+| [Nimbalyst](https://github.com/nimbalyst/nimbalyst) | 1,257 | MIT | Visual desktop workspace with a mobile companion app that pushes notifications; syncs through a hosted collaboration server |
+| [Paneflow](https://github.com/arthjean/paneflow) | 35 | GPL-3.0 | Native Rust pane workspace with an attention queue and desktop notifications |
+| Conductor (Melty Labs) | closed source, no public repo | proprietary | macOS-only worktree dashboard; not installable from npm or PyPI |
+
+Every one of these gives you somewhere to watch your agents work. TaskSwarm is built on the opposite assumption: you're not watching, so it pushes to you instead. Adjacent to this, the standardized agent-integration protocol MCP grew into its own mainstream category over the same period, [10,000+ active public MCP servers and 97M+ monthly SDK downloads as of Anthropic's December 2025 ecosystem update](https://digitalapplied.com/blog/mcp-adoption-statistics-2026-model-context-protocol) -- the same underlying shift toward agents that plug into standard integration points, which is the same reason TaskSwarm's own wrapper-script adapter (`taskswarm agent report-status`) is deliberately protocol-agnostic rather than tied to one agent's hook format.
 
 ## What TaskSwarm is, and why it exists
 
