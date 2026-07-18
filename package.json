@@ -1,6 +1,6 @@
 {
   "name": "taskswarm-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Self-hosted, event-driven coordination for parallel coding-agent sessions (Claude Code, Codex, Cursor). Push notifications the instant a session blocks, needs review, fails, or finishes, plus a live local status page.",
   "keywords": [
     "coding-agent",
