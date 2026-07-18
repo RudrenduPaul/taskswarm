@@ -2,6 +2,7 @@
 from src/server/index.ts."""
 from __future__ import annotations
 
+import sys
 import threading
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
@@ -49,6 +50,18 @@ def start_server(
 
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
+
+    if resolved_config.host not in ("127.0.0.1", "localhost", "::1"):
+        # Two things get worse off loopback: the bearer token travels in
+        # plaintext http:// (no TLS path exists), and it's accepted as a
+        # ?token= query parameter for /live, which lands in local access logs.
+        print(
+            f'[taskswarm] warning: binding to "{resolved_config.host}" instead of loopback -- '
+            "the API token is sent over plaintext http:// with no TLS, and is accepted as a URL "
+            "query parameter for /live (visible in local access logs). Only do this on a "
+            "network you trust.",
+            file=sys.stderr,
+        )
 
     url = f"http://{resolved_config.host}:{resolved_config.port}/?token={quote(resolved_config.token)}"
 

@@ -48,6 +48,15 @@ export async function startServer(options: StartServerOptions = {}): Promise<Run
     server.listen(config.port, config.host, () => resolve());
   });
 
+  if (config.host !== '127.0.0.1' && config.host !== 'localhost' && config.host !== '::1') {
+    // Two things get worse off loopback: the bearer token travels in
+    // plaintext http:// (no TLS path exists), and it's accepted as a
+    // ?token= query parameter for /live, which lands in local access logs.
+    console.warn(
+      `[taskswarm] warning: binding to "${config.host}" instead of loopback -- the API token is sent over plaintext http:// with no TLS, and is accepted as a URL query parameter for /live (visible in local access logs). Only do this on a network you trust.`,
+    );
+  }
+
   const url = `http://${config.host}:${config.port}/?token=${encodeURIComponent(config.token)}`;
 
   return {

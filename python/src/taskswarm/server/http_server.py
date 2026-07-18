@@ -34,6 +34,12 @@ _UI_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # instead of the serving thread blocking on it forever.
 _SSE_HEARTBEAT_SECONDS = 15.0
 
+# Caps concurrent /live SSE connections (each holds its own OS thread here,
+# since ThreadingHTTPServer is one-thread-per-connection) so a client
+# (malicious or just leaked-token) can't exhaust server threads/FDs by
+# opening unbounded long-lived connections.
+_MAX_SSE_CLIENTS = 64
+
 
 class TaskSwarmHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
@@ -58,17 +64,21 @@ def _send_json(handler: BaseHTTPRequestHandler, status: int, body: Any) -> None:
         pass
 
 
-def _is_authorized(handler: BaseHTTPRequestHandler, token: str, query: Dict[str, list]) -> bool:
+def _is_authorized(
+    handler: BaseHTTPRequestHandler, token: str, query: Dict[str, list], allow_query_token: bool
+) -> bool:
     header_token = extract_bearer_token(handler.headers.get("Authorization"))
     if header_token and tokens_match(header_token, token):
         return True
-    # SSE clients (EventSource) cannot set custom headers, so /live also
-    # accepts the token as a query parameter. Documented trade-off: fine for
-    # a server that binds to 127.0.0.1 by default; callers who bind to a LAN
-    # address should be aware the token can appear in local access logs.
-    query_token = (query.get("token") or [None])[0]
-    if query_token and tokens_match(query_token, token):
-        return True
+    # SSE clients (EventSource) cannot set custom headers, so /live -- and
+    # only /live -- also accepts the token as a query parameter. Every other
+    # route requires the Authorization header, since a query-string token
+    # lands in local access logs / shell history / browser history and there
+    # is no EventSource-style constraint forcing it there for POST/GET /events.
+    if allow_query_token:
+        query_token = (query.get("token") or [None])[0]
+        if query_token and tokens_match(query_token, token):
+            return True
     return False
 
 
@@ -90,14 +100,14 @@ class TaskSwarmRequestHandler(BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/events":
-            if not _is_authorized(self, self.server.token, query):
+            if not _is_authorized(self, self.server.token, query, allow_query_token=False):
                 _send_json(self, 401, {"error": "unauthorized"})
                 return
             self._handle_get_events()
             return
 
         if parsed.path == "/live":
-            if not _is_authorized(self, self.server.token, query):
+            if not _is_authorized(self, self.server.token, query, allow_query_token=True):
                 _send_json(self, 401, {"error": "unauthorized"})
                 return
             self._handle_live()
@@ -110,7 +120,7 @@ class TaskSwarmRequestHandler(BaseHTTPRequestHandler):
         query = parse_qs(parsed.query)
 
         if parsed.path == "/events":
-            if not _is_authorized(self, self.server.token, query):
+            if not _is_authorized(self, self.server.token, query, allow_query_token=False):
                 _send_json(self, 401, {"error": "unauthorized"})
                 return
             self._handle_post_event()
@@ -186,6 +196,11 @@ class TaskSwarmRequestHandler(BaseHTTPRequestHandler):
         )
 
     def _handle_live(self) -> None:
+        with self.server.sse_lock:
+            at_capacity = len(self.server.sse_clients) >= _MAX_SSE_CLIENTS
+        if at_capacity:
+            _send_json(self, 503, {"error": "too many concurrent /live connections"})
+            return
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
         self.send_header("Cache-Control", "no-cache")
