@@ -52,11 +52,13 @@ or with [uv](https://docs.astral.sh/uv/):
 uv add taskswarm
 ```
 
-The complementary JS/TS distribution installs from npm once published
-there too (blocked on a separate, unrelated first-publish 2FA step) --
-see the [project README](https://github.com/RudrenduPaul/taskswarm#readme)
-for that package. Both are first-class and maintained together; neither is
-a replacement for the other.
+The complementary JS/TS distribution is already live on npm as
+`taskswarm-cli` (`npm install -g taskswarm-cli`, or `npx taskswarm-cli
+start` with no install step) -- see the
+[project README](https://github.com/RudrenduPaul/taskswarm#readme) for
+that package. Both are first-class and maintained together; neither is a
+replacement for the other. This Python port is the one still waiting on
+its first publish.
 
 ## Quickstart
 
