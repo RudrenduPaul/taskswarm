@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { randomUUID } from 'node:crypto';
+import { readFileSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { Command, Option } from 'commander';
@@ -14,7 +15,11 @@ import { GenericAdapter } from './adapters/generic-adapter.js';
 import { ClaudeCodeAdapter, installClaudeCodeHooks } from './adapters/claude-code-adapter.js';
 import type { HookInstallScope } from './adapters/claude-code-adapter.js';
 
-const PACKAGE_VERSION = '0.1.0';
+const PACKAGE_VERSION = (
+  JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+    version: string;
+  }
+).version;
 
 function printJson(data: unknown): void {
   console.log(JSON.stringify(data, null, 2));
@@ -314,8 +319,18 @@ export function buildProgram(): Command {
   return program;
 }
 
-const isMainModule =
-  process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+// process.argv[1] is the invoked path, which npm's global install always symlinks
+// (e.g. /opt/homebrew/bin/taskswarm -> .../dist/cli.js). import.meta.url reflects the
+// symlink-resolved real path, so it must be compared against a resolved argv[1] too,
+// or this guard is always false for every globally-installed npm CLI invocation.
+const isMainModule = (() => {
+  if (process.argv[1] === undefined) return false;
+  try {
+    return import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
+  } catch {
+    return false;
+  }
+})();
 
 if (isMainModule) {
   buildProgram()

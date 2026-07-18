@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:net';
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,6 +49,27 @@ describe('CLI smoke tests (real child process, real exit codes)', () => {
     const result = runCli(['--version']);
     expect(result.status).toBe(0);
     expect(result.stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  it('runs correctly when invoked through a symlink, like npm global installs do', () => {
+    // `npm install -g` always creates a symlink (e.g. /opt/homebrew/bin/taskswarm ->
+    // .../dist/cli.js). Node resolves `import.meta.url` to the symlink-resolved real path,
+    // but process.argv[1] is the symlink path itself, unless it's realpath'd first. A prior
+    // release shipped an isMainModule guard that compared the two directly, so it was always
+    // false through a symlink and every command silently no-op'd for every real npm install.
+    const home = mkdtempSync(join(tmpdir(), 'taskswarm-smoke-symlink-'));
+    const symlinkPath = join(home, 'taskswarm-via-symlink');
+    try {
+      symlinkSync(join(repoRoot, 'src', 'cli.ts'), symlinkPath);
+      const result = spawnSync(tsxBin, [symlinkPath, '--help'], {
+        cwd: repoRoot,
+        encoding: 'utf-8',
+      });
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('Usage:');
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
   });
 
   it('an invalid --state choice exits non-zero with a clear error', () => {
