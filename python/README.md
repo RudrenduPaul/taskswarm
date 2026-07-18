@@ -3,9 +3,9 @@
 Self-hosted event server that pushes a notification the instant a parallel
 coding-agent session blocks, needs review, fails, or finishes.
 
-[![PyPI version](https://img.shields.io/pypi/v/taskswarm.svg)](https://pypi.org/project/taskswarm/)
+[![PyPI version](https://img.shields.io/pypi/v/taskswarm-cli.svg)](https://pypi.org/project/taskswarm-cli/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/RudrenduPaul/taskswarm/blob/main/LICENSE)
-[![Python versions](https://img.shields.io/pypi/pyversions/taskswarm.svg)](https://pypi.org/project/taskswarm/)
+[![Python versions](https://img.shields.io/pypi/pyversions/taskswarm-cli.svg)](https://pypi.org/project/taskswarm-cli/)
 [![CI](https://github.com/RudrenduPaul/taskswarm/actions/workflows/ci.yml/badge.svg)](https://github.com/RudrenduPaul/taskswarm/actions/workflows/ci.yml)
 
 ## Why this exists
@@ -30,13 +30,13 @@ standard library.
 Live on PyPI as `taskswarm`:
 
 ```bash
-pip install taskswarm
+pip install taskswarm-cli
 ```
 
 or with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv add taskswarm
+uv add taskswarm-cli
 ```
 
 The complementary JS/TS distribution is already live on npm as
@@ -180,3 +180,4 @@ pytest
 ## License
 
 MIT, see [LICENSE](https://github.com/RudrenduPaul/taskswarm/blob/main/LICENSE).
+
