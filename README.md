@@ -27,22 +27,14 @@ taskswarm start
 Prefer not to install globally? `npx taskswarm-cli start` runs the same
 binary with no install step.
 
-**pip (Python):** the Python port is fully built, tested (117 passing
-tests), and gate-reviewed in `python/`, with a built wheel and sdist ready
-to publish. The `pip install taskswarm` publish itself is pending: PyPI's
-account-level "too many new projects created" rate limit blocked the
-first upload attempt for this account, unrelated to code readiness. Until
-that clears, install from source:
+**pip (Python):** live on PyPI as `taskswarm`:
 
 ```bash
-git clone https://github.com/RudrenduPaul/taskswarm.git
-cd taskswarm/python
-pip install -e .
+pip install taskswarm
 taskswarm start
 ```
 
-Once published, this collapses to `pip install taskswarm`. See
-[python/README.md](./python/README.md) for the Python-specific guide. Both
+See [python/README.md](./python/README.md) for the Python-specific guide. Both
 distributions speak the same wire protocol (the same event schema, the
 same notification-dedup rule), so a Python-started server and an npm CLI
 reporting into it (or vice versa) work together without issue.

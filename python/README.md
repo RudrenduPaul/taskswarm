@@ -27,20 +27,7 @@ standard library.
 
 ## Install
 
-**Publish status**: this package is fully built and tested (117 passing
-tests, a real end-to-end server-lifecycle suite included), with a built
-wheel and sdist ready to go. The `pip install taskswarm` publish itself is
-pending -- PyPI's account-level "too many new projects created" rate
-limit blocked the first upload for this account, unrelated to code
-readiness. Until that clears:
-
-```bash
-git clone https://github.com/RudrenduPaul/taskswarm.git
-cd taskswarm/python
-pip install -e .
-```
-
-Once published:
+Live on PyPI as `taskswarm`:
 
 ```bash
 pip install taskswarm
@@ -57,8 +44,7 @@ The complementary JS/TS distribution is already live on npm as
 start` with no install step) -- see the
 [project README](https://github.com/RudrenduPaul/taskswarm#readme) for
 that package. Both are first-class and maintained together; neither is a
-replacement for the other. This Python port is the one still waiting on
-its first publish.
+replacement for the other.
 
 ## Quickstart
 
