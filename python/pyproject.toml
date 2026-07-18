@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "taskswarm"
+name = "taskswarm-cli"
 version = "0.1.0"
 description = "Self-hosted event server that pushes a notification the instant a parallel coding-agent session blocks, needs review, fails, or finishes."
 readme = "README.md"
