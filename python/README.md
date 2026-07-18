@@ -1,3 +1,10 @@
+# taskswarm (Python) -- renamed to taskswarm-cli
+
+**This PyPI package has been renamed.** Install [`taskswarm-cli`](https://pypi.org/project/taskswarm-cli/)
+instead: `pip install taskswarm-cli`. This package will not receive further updates.
+
+---
+
 # taskswarm (Python)
 
 Self-hosted event server that pushes a notification the instant a parallel
