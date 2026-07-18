@@ -1,17 +1,21 @@
 {
   "name": "taskswarm-cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Self-hosted, event-driven coordination for parallel coding-agent sessions (Claude Code, Codex, Cursor). Push notifications the instant a session blocks, needs review, fails, or finishes, plus a live local status page.",
   "keywords": [
     "coding-agent",
     "multi-agent",
     "claude-code",
-    "orchestration",
+    "codex",
+    "cursor",
+    "agent-orchestration",
     "cli",
     "notifications",
+    "push-notifications",
     "self-hosted",
-    "dashboard",
-    "kanban"
+    "event-driven",
+    "server-sent-events",
+    "hooks"
   ],
   "homepage": "https://github.com/RudrenduPaul/taskswarm",
   "bugs": {
