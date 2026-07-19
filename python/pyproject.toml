@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "taskswarm-cli"
-version = "0.1.0"
+version = "0.1.1"
 description = "Self-hosted event server that pushes a notification the instant a parallel coding-agent session blocks, needs review, fails, or finishes."
 readme = "README.md"
 requires-python = ">=3.9"

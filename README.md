@@ -9,6 +9,8 @@ TaskSwarm is a self-hosted event server that fixes that. Every agent session rep
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![PyPI version](https://img.shields.io/pypi/v/taskswarm-cli.svg)](https://pypi.org/project/taskswarm-cli/)
 
+![Installing taskswarm-cli from npm, checking its version, then starting the TaskSwarm server and seeing the live status page URL it prints](./docs/demo.gif)
+
 ## Install
 
 TaskSwarm ships as two independent, equally first-class distributions of
@@ -95,6 +97,8 @@ Locally track tasks independent of live session state (a lightweight to-do list,
 node dist/cli.js task add --title "Fix flaky test" --repo ./api
 node dist/cli.js task list
 ```
+
+![Adding two tasks with taskswarm task add, then listing them with taskswarm task list in human-readable and --json form](./docs/usage.gif)
 
 ## CLI reference
 
@@ -192,6 +196,18 @@ That's the status quo this project is a response to. It works until you're runni
 
 **What happens if the server isn't running when I call a command?**
 Commands that need it fail fast with a specific message (`could not reach TaskSwarm server at http://127.0.0.1:4173 -- is it running? (taskswarm start)`), not a stack trace. `task add` and `task list` still work without the server; they just skip live-status enrichment.
+
+**What is TaskSwarm, exactly?**
+A self-hosted event server plus a CLI. Agent sessions, or a wrapper script around any agent, report status to it (`taskswarm agent report-status`), and it pushes a local OS notification and updates a live SSE status page the instant a session goes `blocked`, `needs-review`, `failed`, or `done`. It doesn't launch, schedule, or run agents itself; it only tracks and pushes state for sessions that are already running somewhere else.
+
+**What are the platform and install requirements?**
+The npm build (`taskswarm-cli`) needs Node.js `>=18.18.0`, per the `engines` field in `package.json`. The PyPI build (also `taskswarm-cli`) needs Python `>=3.9`, per `pyproject.toml`, which also declares `Operating System :: OS Independent`. One caveat that's platform-specific in practice: the native OS push notification only fires on macOS, via `osascript` (see `src/notify/os-notify.ts`). On Linux and Windows, TaskSwarm falls back to a console line plus a terminal bell instead of a system notification, still local, still without ntfy.sh unless you opt in.
+
+**How does TaskSwarm compare to a specific competitor, like Vibe Kanban or paperclip?**
+See the comparison tables above for the full breakdown, but the short version: paperclip and Multica are built to run and visualize a whole roster of agents like an org chart, and Vibe Kanban was a full planning-and-review workspace before the company behind it shut down (its README carries a shutdown banner as of this writing). None of the three list a push/desktop notification feature in their own README. TaskSwarm skips the board entirely and only does the one thing: push a signal the instant a session needs you.
+
+**Can I use TaskSwarm in a commercial or paid product?**
+Yes. The core (event server, CLI, live status page, Claude Code hook integration) is MIT-licensed with no field-of-use restriction, so self-hosting it inside a commercial product, a paid service, or an internal tool is fine. That's a real point of difference from Multica in the comparison table above, which ships under a modified Apache-2.0 license that explicitly restricts hosted commercial use.
 
 ## Contributing
 
