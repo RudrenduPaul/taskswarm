@@ -27,6 +27,9 @@
   },
   "license": "MIT",
   "author": "Rudrendu Paul",
+  "contributors": [
+    "Sourav Nandy"
+  ],
   "type": "module",
   "bin": {
     "taskswarm": "./dist/cli.js",
