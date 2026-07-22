@@ -8,15 +8,15 @@ note which distribution they apply to.
 
 ## [Python 0.1.0] - 2026-07-17
 
-Initial release of the Python port, code-complete and gate-reviewed:
-built, tested (117 passing tests, including a real end-to-end
+Initial release of the Python port, code-complete and tested: built,
+tested (117 passing tests, including a real end-to-end
 server-lifecycle suite), and packaged as `taskswarm` for PyPI
-(`pip install taskswarm`). The PyPI publish itself is pending -- the
-first upload attempt hit PyPI's account-level "too many new projects
-created" rate limit, unrelated to code readiness; install from source
-(`pip install -e python/`) until it clears. Complementary to, not a
-replacement for, the npm package -- both are first-class and maintained
-together. See `python/README.md` for Python-specific usage.
+(`pip install taskswarm`). The first upload attempt hit PyPI's
+account-level "too many new projects created" rate limit, unrelated to
+code readiness; publishing has since completed and the package is live.
+Complementary to, not a replacement for, the npm package -- both are
+first-class and maintained together. See `python/README.md` for
+Python-specific usage.
 
 ### Added
 

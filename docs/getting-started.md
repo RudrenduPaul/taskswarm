@@ -7,7 +7,7 @@ server, and the instant a session transitions to `blocked`,
 notification and updates a live status page over Server-Sent Events. It
 ships as two independent, equally first-class packages that speak the same
 wire protocol: an npm package (`taskswarm-cli`, JavaScript/TypeScript) and
-a PyPI package (`taskswarm`, Python). Pick whichever fits your toolchain,
+a PyPI package (`taskswarm-cli`, Python). Pick whichever fits your toolchain,
 or run both against the same server -- the server and CLI don't need to be
 the same distribution.
 
@@ -16,18 +16,14 @@ the same distribution.
 **npm (JS/TS server + CLI):**
 
 ```bash
-# Not yet published -- run from source until then:
-git clone https://github.com/RudrenduPaul/taskswarm.git
-cd taskswarm
-npm install
-npm run build
-node dist/cli.js start
+npm install -g taskswarm-cli
+taskswarm start
 ```
 
 **pip (Python server + CLI):**
 
 ```bash
-pip install taskswarm
+pip install taskswarm-cli
 taskswarm start
 ```
 
@@ -39,8 +35,8 @@ no external binary, no network fetch.
 Start the server in one terminal:
 
 ```bash
-# npm (from a source checkout, until published)
-node dist/cli.js start
+# npm
+taskswarm start
 
 # Python
 taskswarm start
