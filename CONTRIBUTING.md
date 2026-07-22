@@ -3,7 +3,7 @@
 Thanks for looking at this. TaskSwarm ships two independently maintained,
 equally first-class distributions of the same event server: an npm
 package (`taskswarm-cli`, TypeScript, repo root) and a PyPI package
-(`taskswarm`, Python, `python/`). Both implement the same event schema,
+(`taskswarm-cli`, Python, `python/`). Both implement the same event schema,
 event-server behavior, and notification logic, and are expected to behave
 identically against the same request. Please read this whole file before
 opening a PR -- which section applies depends on which codebase you're
