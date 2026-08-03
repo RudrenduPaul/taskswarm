@@ -125,7 +125,8 @@ running.close()
 | `taskswarm hooks install <adapter>` | Install hooks for an agent integration (currently `claude-code`)                                               | `--scope <project\|local\|user>` (default `project`), `--project-dir <path>`, `--json`                                                                                                                                                                                   |
 | `taskswarm hooks claude-code-relay` | Internal: reads a hook payload from stdin and relays it. Installed automatically; not meant to be run by hand. | none                                                                                                                                                                                                                                                                     |
 
-`taskswarm --version` prints `taskswarm 0.1.0`. The `taskswarm-cli` console
+`taskswarm --version` prints `taskswarm 0.1.1`, matching this package's
+`pyproject.toml` version. The `taskswarm-cli` console
 script installed by this package is an identical alias, matching both `bin`
 entries the npm package ships.
 
@@ -181,4 +182,3 @@ pytest
 ## License
 
 MIT, see [LICENSE](https://github.com/RudrenduPaul/taskswarm/blob/main/LICENSE).
-

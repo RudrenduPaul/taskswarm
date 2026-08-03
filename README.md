@@ -114,7 +114,10 @@ Captured directly from `--help` output on the built CLI (`node dist/cli.js <comm
 | `taskswarm hooks install <adapter>` | Install hooks for an agent integration (currently `claude-code`)                                               | `--scope <project\|local\|user>` (default `project`), `--project-dir <path>`, `--json`                                                                                                                                                                                   |
 | `taskswarm hooks claude-code-relay` | Internal: reads a hook payload from stdin and relays it. Installed automatically; not meant to be run by hand. | none                                                                                                                                                                                                                                                                     |
 
-Every subcommand also takes `-h, --help`. `taskswarm --version` prints `0.1.0`.
+Every subcommand also takes `-h, --help`. `taskswarm --version` prints the
+installed package's own version number, read live from `package.json`
+(so it always matches whatever release you actually have installed,
+rather than a fixed number that would go stale here).
 
 ### A real failure, for reference
 
