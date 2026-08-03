@@ -26,7 +26,11 @@ from .schema.events import AGENT_STATUSES, AGENT_TYPES
 from .server.config import load_or_create_config, rotate_token
 from .server.server import start_server
 
-PACKAGE_VERSION = "0.1.0"
+# Keep this in sync with the version in pyproject.toml -- it is not read
+# dynamically (avoids an importlib.metadata dependency on an editable,
+# not-yet-installed source checkout), so it must be bumped by hand on every
+# release alongside pyproject.toml's [project] version.
+PACKAGE_VERSION = "0.1.1"
 
 
 def _print_json(data: Any) -> None:
