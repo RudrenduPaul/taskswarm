@@ -181,4 +181,3 @@ pytest
 ## License
 
 MIT, see [LICENSE](https://github.com/RudrenduPaul/taskswarm/blob/main/LICENSE).
-
