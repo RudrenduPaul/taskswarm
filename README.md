@@ -105,7 +105,7 @@ node dist/cli.js task list
 Captured directly from `--help` output on the built CLI (`node dist/cli.js <command> --help`):
 
 | Command                             | Description                                                                                                    | Key options                                                                                                                                                                                                                                                              |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `taskswarm start`                   | Start the TaskSwarm server and print the live status page URL                                                  | `--json`                                                                                                                                                                                                                                                                 |
 | `taskswarm task add`                | Register a new task                                                                                            | `--title <title>` (required), `--repo <path>` (required), `--json`                                                                                                                                                                                                       |
 | `taskswarm task list`               | List tracked tasks, enriched with live status when the server is reachable                                     | `--json`                                                                                                                                                                                                                                                                 |
@@ -133,15 +133,68 @@ Error: could not reach TaskSwarm server at http://127.0.0.1:4173 -- is it runnin
 
 Both exit non-zero with a plain-English message and no stack trace, including under `--json`.
 
+## Library API reference
+
+The npm package is also importable, not just runnable as a CLI: `main`/`types` point at `dist/index.js`/`dist/index.d.ts`, and `src/index.ts` exports a real public surface for anything that wants to embed the event store, server, or adapters directly instead of shelling out.
+
+**Schema** (`src/schema/events.ts`)
+
+- `agentEventSchema`, `agentEventInputSchema` -- Zod schemas for the event envelope
+- `toAgentEvent(input: AgentEventInput): AgentEvent` -- fills in `event_id`/`timestamp`/`schema_version` defaults
+- `AGENT_TYPES`, `AGENT_STATUSES` -- the const arrays backing the `AgentType`/`AgentStatus` union types
+- `NOTIFY_ON_STATUSES: ReadonlySet<AgentStatus>` -- the four statuses that trigger a notification: `blocked`, `needs-review`, `failed`, `done`
+- `CURRENT_SCHEMA_VERSION` -- the current envelope version number
+
+**Server** (`src/server/`)
+
+- `class EventStore extends EventEmitter` -- in-memory session store backed by an append-only JSONL log. `constructor(logPath?: string, options?: EventStoreOptions)`. Methods: `append(event): { previousStatus, previousBlockedReason }`, `getSession(sessionId): SessionState | undefined`, `listSessions(): SessionState[]`, `size(): number`. Emits `'event'` on every append.
+- `startServer(options?: StartServerOptions): Promise<RunningServer>` -- boots the event store and the HTTP/SSE server. `RunningServer` is `{ server, store, config, url, close }`.
+- `loadOrCreateConfig(): TaskSwarmConfig`, `saveConfig(config): void`, `rotateToken(): string`, `generateToken(): string`, `getTaskSwarmHome(): string`
+
+**Notifications** (`src/notify/index.ts`)
+
+- `shouldNotify(status, previousStatus, blockedReason?, previousBlockedReason?): boolean` -- the dedup rule. Keys on the `(status, blocked_reason)` pair, not status alone, so two different permission prompts in a row both notify.
+- `notify(event, previousStatus, previousBlockedReason, options?: NotifyOptions): void` -- fires the enabled channels. Local OS notification is always on; ntfy.sh only fires when `options.ntfy.enabled` is true.
+
+**Adapters** (`src/adapters/`)
+
+- `interface AgentAdapter { agentType: AgentType; name: string; toEventInput(raw): AgentEventInput }` -- the plugin point every integration implements
+- `class GenericAdapter implements AgentAdapter` -- the wrapper-script fallback path
+- `class ClaudeCodeAdapter implements AgentAdapter`, `installClaudeCodeHooks(options: InstallHooksOptions): InstallHooksResult` -- the real Claude Code hooks integration
+
+Embedding the server directly instead of running `taskswarm start`, verified working against the built package:
+
+```ts
+import { startServer, EventStore } from 'taskswarm-cli';
+
+const running = await startServer({ logPath: null }); // in-memory only, no JSONL log
+console.log(running.url); // http://127.0.0.1:4173/?token=...
+console.log(running.store instanceof EventStore); // true
+await running.close();
+```
+
+Types exported alongside every function: `AgentEvent`, `AgentEventInput`, `AgentType`, `AgentStatus`, `SessionState`, `TaskSwarmConfig`, `NotifyOptions`, `RunningServer`, `StartServerOptions`, `HookInstallScope`, `InstallHooksOptions`, `InstallHooksResult`.
+
+The Python distribution mirrors the same surface (snake_case instead of camelCase, `py.typed` for type checkers), also verified working against the built package:
+
+```python
+from taskswarm import start_server, EventStore, TaskSwarmConfig
+
+cfg = TaskSwarmConfig(token="local-dev", port=4175, host="127.0.0.1", ntfy={"enabled": False})
+running = start_server(config=cfg, log_path=None)  # in-memory only, no JSONL log
+print(running.url)  # http://127.0.0.1:4175/?token=local-dev
+running.close()
+```
+
 ## How it compares
 
-Verified live against each project's GitHub API metadata and README, 2026-07-15. TaskSwarm's own numbers are measured, not estimated. Methodology below the table.
+Verified live against each project's GitHub API metadata and README, 2026-08-03. TaskSwarm's own numbers are measured, not estimated. Methodology below the table.
 
 |                                           | **TaskSwarm**                                             | [paperclip](https://github.com/paperclipai/paperclip) | [Vibe Kanban](https://github.com/BloopAI/vibe-kanban)                                                                                | [Multica](https://github.com/multica-ai/multica)                        |
 | ----------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| Stars                                     | pre-launch                                                | 73,818                                                | 27,389                                                                                                                               | 40,638                                                                  |
+| Stars                                     | pre-launch                                                | 75,547                                                | 27,656                                                                                                                               | 43,690                                                                  |
 | License                                   | MIT                                                       | MIT                                                   | Apache-2.0                                                                                                                           | Source-available (modified Apache-2.0; restricts hosted commercial use) |
-| Maintenance status                        | active                                                    | active (commits today)                                | **sunsetting**: company shut down, README carries a shutdown banner, last commit 2026-04-24, about 3 months stale as of this writing | active (commits today)                                                  |
+| Maintenance status                        | active                                                    | active (commits today)                                | **sunsetting**: company shut down, README carries a shutdown banner, last commit 2026-04-24, over 3 months stale as of this writing  | active (commits today)                                                  |
 | Push/desktop notification on state change | **yes**: local OS notification by default, ntfy.sh opt-in | not found in README                                   | not found in README                                                                                                                  | not found in README                                                     |
 | Primary UI                                | live status table (SSE)                                   | full Kanban board + org chart                         | full Kanban board                                                                                                                    | full Kanban board                                                       |
 | Self-hosted, no account                   | yes                                                       | yes                                                   | yes (self-hosting guide, Docker)                                                                                                     | yes (Docker)                                                            |
@@ -161,15 +214,15 @@ Numbers not listed for the other three tools are not estimated placeholders. The
 
 ### Where TaskSwarm sits in the wider 2026 field
 
-paperclip, Vibe Kanban, and Multica are the closest full-board comparables, but they're not the whole picture. Running several coding agents in parallel became one of the most active corners of open source in 2026: Anthropic's own [2026 Agentic Coding Trends Report](https://resources.anthropic.com/2026-agentic-coding-trends-report) names multi-agent coordination as one of eight trends reshaping how software gets built, and OpenAI reported [Codex alone crossed 5 million weekly users](https://www.constellationr.com/insights/news/openai-touts-broadening-codex-usage-5-million-weekly-active-users) by June 2026. A whole wave of orchestration UIs shipped alongside that growth. Here's where TaskSwarm sits next to the newer parallel-agent tools that cover a similar workflow with a different shape, verified live 2026-07-18:
+paperclip, Vibe Kanban, and Multica are the closest full-board comparables, but they're not the whole picture. Running several coding agents in parallel became one of the most active corners of open source in 2026: Anthropic's own [2026 Agentic Coding Trends Report](https://resources.anthropic.com/2026-agentic-coding-trends-report) names multi-agent coordination as one of eight trends reshaping how software gets built, and OpenAI reported [Codex alone crossed 5 million weekly users](https://www.constellationr.com/insights/news/openai-touts-broadening-codex-usage-5-million-weekly-active-users) by June 2026. A whole wave of orchestration UIs shipped alongside that growth. Here's where TaskSwarm sits next to the newer parallel-agent tools that cover a similar workflow with a different shape, verified live 2026-08-03:
 
 | Tool                                                    | Stars                         | License                                | What it actually is                                                                                                         |
-| ------------------------------------------------------- | ----------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| -------------------------------------------------------- | -------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | **TaskSwarm**                                           | pre-launch                    | MIT                                    | Notification-only event server; no UI you have to keep open                                                                 |
-| [Claude Squad](https://github.com/smtg-ai/claude-squad) | 8,135                         | AGPL-3.0                               | tmux-based terminal manager for parallel agent sessions, no notification feature found in its README                        |
-| [Superset](https://github.com/superset-sh/superset)     | 12,483                        | Elastic License 2.0 (source-available) | Full code editor built around parallel agents; "get notified when they need attention" per its own README                   |
-| [Nimbalyst](https://github.com/nimbalyst/nimbalyst)     | 1,257                         | MIT                                    | Visual desktop workspace with a mobile companion app that pushes notifications; syncs through a hosted collaboration server |
-| [Paneflow](https://github.com/arthjean/paneflow)        | 35                            | GPL-3.0                                | Native Rust pane workspace with an attention queue and desktop notifications                                                |
+| [Claude Squad](https://github.com/smtg-ai/claude-squad) | 8,231                         | AGPL-3.0                               | tmux-based terminal manager for parallel agent sessions, no notification feature found in its README                        |
+| [Superset](https://github.com/superset-sh/superset)     | 12,763                        | Elastic License 2.0 (source-available) | Full code editor built around parallel agents; "get notified when they need attention" per its own README                   |
+| [Nimbalyst](https://github.com/nimbalyst/nimbalyst)     | 1,394                         | MIT                                    | Visual desktop workspace with a mobile companion app that pushes notifications; syncs through a hosted collaboration server |
+| [Paneflow](https://github.com/arthjean/paneflow)        | 48                            | GPL-3.0                                | Native Rust pane workspace with an attention queue and desktop notifications                                                |
 | Conductor (Melty Labs)                                  | closed source, no public repo | proprietary                            | macOS-only worktree dashboard; not installable from npm or PyPI                                                             |
 
 Every one of these gives you somewhere to watch your agents work. TaskSwarm is built on the opposite assumption: you're not watching, so it pushes to you instead. Adjacent to this, the standardized agent-integration protocol MCP grew into its own mainstream category over the same period, [10,000+ active public MCP servers and 97M+ monthly SDK downloads as of Anthropic's December 2025 ecosystem update](https://digitalapplied.com/blog/mcp-adoption-statistics-2026-model-context-protocol) -- the same underlying shift toward agents that plug into standard integration points, which is the same reason TaskSwarm's own wrapper-script adapter (`taskswarm agent report-status`) is deliberately protocol-agnostic rather than tied to one agent's hook format.
@@ -202,6 +255,9 @@ Commands that need it fail fast with a specific message (`could not reach TaskSw
 
 **What is TaskSwarm, exactly?**
 A self-hosted event server plus a CLI. Agent sessions, or a wrapper script around any agent, report status to it (`taskswarm agent report-status`), and it pushes a local OS notification and updates a live SSE status page the instant a session goes `blocked`, `needs-review`, `failed`, or `done`. It doesn't launch, schedule, or run agents itself; it only tracks and pushes state for sessions that are already running somewhere else.
+
+**Can I use TaskSwarm as a library instead of the CLI?**
+Yes. Both distributions export a real programmatic surface, not just a `bin` entry: `import { startServer, EventStore } from 'taskswarm-cli'` on npm, `from taskswarm import start_server, EventStore` on PyPI. See the [Library API reference](#library-api-reference) above for the full export list and a working example of each.
 
 **What are the platform and install requirements?**
 The npm build (`taskswarm-cli`) needs Node.js `>=18.18.0`, per the `engines` field in `package.json`. The PyPI build (also `taskswarm-cli`) needs Python `>=3.9`, per `pyproject.toml`, which also declares `Operating System :: OS Independent`. One caveat that's platform-specific in practice: the native OS push notification only fires on macOS, via `osascript` (see `src/notify/os-notify.ts`). On Linux and Windows, TaskSwarm falls back to a console line plus a terminal bell instead of a system notification, still local, still without ntfy.sh unless you opt in.

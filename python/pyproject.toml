@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "taskswarm-cli"
-version = "0.1.1"
-description = "Self-hosted event server that pushes a notification the instant a parallel coding-agent session blocks, needs review, fails, or finishes."
+version = "0.1.2"
+description = "Self-hosted, event-driven coordination for parallel coding-agent sessions (Claude Code, Codex, Cursor). Fires a local OS notification and updates a live SSE status page the instant a session blocks, needs review, fails, or finishes. Zero runtime dependencies."
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
@@ -13,7 +13,7 @@ authors = [
   { name = "Rudrendu Paul" },
   { name = "Sourav Nandy" },
 ]
-keywords = ["coding-agent", "multi-agent", "claude-code", "orchestration", "cli", "notifications", "self-hosted", "event-server", "dashboard"]
+keywords = ["coding-agent", "multi-agent", "claude-code", "codex", "cursor", "agent-orchestration", "cli", "notifications", "push-notifications", "self-hosted", "event-driven", "server-sent-events", "hooks", "dashboard"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
