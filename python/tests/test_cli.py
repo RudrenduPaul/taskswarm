@@ -3,6 +3,7 @@ import threading
 
 import pytest
 
+from taskswarm import __version__
 from taskswarm.cli import run_cli
 from taskswarm.notifications.dispatch import NotifyOptions
 from taskswarm.server.config import TaskSwarmConfig, generate_token
@@ -15,9 +16,18 @@ def _run(argv, capsys):
     return exit_code, captured.out, captured.err
 
 
-def test_version(capsys):
-    with pytest.raises(SystemExit):
+def test_version_flag_reports_the_real_installed_package_version(capsys):
+    """Regression: __version__ (and cli.py's separate copy of it) was a
+    hardcoded string that drifted from the actual installed/published
+    version, so `taskswarm --version` silently reported a stale number.
+    __version__ is now read live from package metadata, and this asserts
+    the CLI's --version output actually reflects it, not a second
+    hand-maintained constant that could drift independently again."""
+    with pytest.raises(SystemExit) as exc_info:
         run_cli(["taskswarm", "--version"])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert __version__ in captured.out
 
 
 def test_help_with_no_command(capsys):

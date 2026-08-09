@@ -6,6 +6,35 @@ JS/TS) and the PyPI package (`taskswarm`, Python) -- since they ship the
 same event schema, event-server behavior, and notification logic; entries
 note which distribution they apply to.
 
+## [Python 0.1.2] - 2026-08-08
+
+Fixes a stale-version bug in the Python package's `--version` output.
+`taskswarm/__init__.py`'s `__version__` and `cli.py`'s separate
+`PACKAGE_VERSION` constant were both hand-maintained strings that had
+already drifted from the real published version -- `__version__` still
+said `"0.1.0"` and `PACKAGE_VERSION` still said `"0.1.1"` while the
+package had already shipped 0.1.1 on PyPI, so `taskswarm --version`
+was reporting a stale, wrong version to every user and agent that
+checked it.
+
+### Fixed
+
+- `__init__.py` now reads `__version__` live from the installed
+  package's own metadata via `importlib.metadata.version("taskswarm-cli")`,
+  falling back to a clearly-labeled `"0.0.0-dev"` placeholder when running
+  from an uninstalled source checkout, instead of a hardcoded string that
+  requires a manual bump on every release and can silently go stale.
+- `cli.py` no longer keeps its own separate hardcoded `PACKAGE_VERSION`
+  constant; it now imports `__version__` from the package (as
+  `PACKAGE_VERSION`, so the rest of the module and the `--version`
+  argparse flag needed no further changes), eliminating the second copy
+  that could drift independently from the first.
+- Strengthened `test_version` (now
+  `test_version_flag_reports_the_real_installed_package_version`) in
+  `python/tests/test_cli.py` to assert the printed `--version` output
+  actually contains the real installed package's `__version__`, not just
+  that the flag exits -- closing the gap the old test would have missed.
+
 ## [Python 0.1.0] - 2026-07-17
 
 Initial release of the Python port, code-complete and tested: built,

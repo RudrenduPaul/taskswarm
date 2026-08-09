@@ -17,6 +17,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from . import __version__ as PACKAGE_VERSION
 from .adapters.claude_code_adapter import install_claude_code_hooks
 from .adapters.generic_adapter import GenericAdapter
 from .adapters.types import AdapterValidationError
@@ -25,12 +26,6 @@ from .client.tasks_registry import TaskRecord, add_task, list_tasks
 from .schema.events import AGENT_STATUSES, AGENT_TYPES
 from .server.config import load_or_create_config, rotate_token
 from .server.server import start_server
-
-# Keep this in sync with the version in pyproject.toml -- it is not read
-# dynamically (avoids an importlib.metadata dependency on an editable,
-# not-yet-installed source checkout), so it must be bumped by hand on every
-# release alongside pyproject.toml's [project] version.
-PACKAGE_VERSION = "0.1.1"
 
 
 def _print_json(data: Any) -> None:
