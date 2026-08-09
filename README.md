@@ -47,7 +47,7 @@ reporting into it (or vice versa) work together without issue.
 
 - **Push notifications, from a board you don't have to keep open.** The moment a session transitions to `blocked`, `needs-review`, `failed`, or `done`, TaskSwarm fires a native OS notification (`osascript` on macOS, a terminal bell fallback elsewhere). Measured dispatch latency below. None of paperclip, Vibe Kanban, or Multica (see comparison below) do this; all three are boards you have to be looking at.
 - **A live status page that updates over server-sent events, not polling.** One flat table: session, repo, agent type, status, last-event timestamp. No refresh button.
-- **Real Claude Code hook integration, verified against the published hooks reference.** `taskswarm hooks install claude-code` writes `Stop` and `Notification` hook entries into `.claude/settings.json`, pointed at the exact Node binary and CLI script already on disk. It deliberately avoids `npx`; see the code comment in `src/adapters/claude-code-adapter.ts` for why floating registry resolution on every hook fire is a supply-chain risk. One caveat stated plainly: Claude Code's `Stop` hook fires per-turn, not per-task, so a long multi-turn session reports `done` after every turn in v0.1, not just the final one.
+- **Real Claude Code hook integration, verified against the published hooks reference.** `taskswarm hooks install claude-code` writes `Stop` and `Notification` hook entries into `.claude/settings.json`, pointed at the exact Node binary and CLI script already on disk. It deliberately avoids `npx`; see the code comment in `src/adapters/claude-code-adapter.ts` for why floating registry resolution on every hook fire is a supply-chain risk. One caveat stated plainly: Claude Code's `Stop` hook fires per-turn, not per-task, so a long multi-turn session currently reports `done` after every turn, not just the final one.
 - **A wrapper-script fallback for Codex, Cursor, or anything else.** `taskswarm agent report-status --task <id> --repo <path> --state <state>` is the same primitive the Claude Code adapter calls under the hood. Any script wrapping any CLI agent can call it directly.
 - **A bearer-token-gated local API, bound to loopback by default.** `POST /events` and the live page both require the token TaskSwarm generates on first run (`~/.taskswarm/config.json`, written `0600`). Rotate it with `taskswarm token rotate`.
 - **Agent-native by design.** Every subcommand ships a `--json` flag with a stable schema, including error output, so a script calling this CLI never has to scrape human-formatted text.
@@ -178,7 +178,7 @@ Every one of these gives you somewhere to watch your agents work. TaskSwarm is b
 
 Running one coding agent is a conversation. Running three or four in parallel turns into a tab-switching problem: nothing pushes state to you, so you end up polling terminals by eye just to find out one of them has been sitting on a permission prompt for ten minutes. TaskSwarm exists to close that gap: a push signal for the moment a session actually needs a human.
 
-The core (event server, CLI, live status page, Claude Code hook integration) is MIT-licensed and free to self-host, for individual use, for a team, for anything. There is no hosted tier and no paid tier shipped in this version. v0.1 is the entire product right now.
+The core (event server, CLI, live status page, Claude Code hook integration) is MIT-licensed and free to self-host, for individual use, for a team, for anything. There is no hosted tier and no paid tier shipped currently. The self-hosted core is the entire product right now.
 
 ## FAQ
 
@@ -186,7 +186,7 @@ The core (event server, CLI, live status page, Claude Code hook integration) is 
 No. Those track work items a human plans. TaskSwarm tracks live agent session state and tells you the instant it changes. Different job.
 
 **Do I need Claude Code specifically?**
-No. `taskswarm hooks install claude-code` is the one verified native integration in v0.1. Codex, Cursor, or anything else works through the same primitive that adapter calls internally: `taskswarm agent report-status`, callable from any wrapper script around any CLI agent.
+No. `taskswarm hooks install claude-code` is the one verified native integration currently shipped. Codex, Cursor, or anything else works through the same primitive that adapter calls internally: `taskswarm agent report-status`, callable from any wrapper script around any CLI agent.
 
 **Where does my data go?**
 Nowhere, by default. The server binds to `127.0.0.1`, requires a bearer token for every request, and writes state to `~/.taskswarm/` (or wherever `TASKSWARM_HOME` points) on your own disk. The only optional channel that leaves your machine is ntfy.sh, and it's off unless you explicitly enable it.
