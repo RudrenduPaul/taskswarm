@@ -91,6 +91,8 @@ node dist/cli.js hooks install claude-code
 
 This writes `Stop`/`Notification` hooks into `.claude/settings.json` for the current project. Every turn Claude Code finishes, and every permission prompt or idle wait it surfaces, now reports into TaskSwarm automatically.
 
+![Running taskswarm hooks install claude-code and inspecting the Stop/Notification entries it writes into .claude/settings.json](./docs/hooks-install.gif)
+
 Locally track tasks independent of live session state (a lightweight to-do list, not the event feed):
 
 ```bash
