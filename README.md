@@ -1,15 +1,19 @@
 # TaskSwarm
 
-You're running three Claude Code sessions across two repos. One of them hit a permission prompt four minutes ago and has been sitting there ever since, waiting on you. You didn't know, because nothing told you. You just tabbed back to check.
-
-TaskSwarm is a self-hosted event server that fixes that. Every agent session reports its state, and the instant one goes blocked, needs review, fails, or finishes, TaskSwarm fires a local OS notification and updates a live status page. No polling terminals. No account. No cloud dependency.
-
 [![CI](https://github.com/RudrenduPaul/taskswarm/actions/workflows/ci.yml/badge.svg)](https://github.com/RudrenduPaul/taskswarm/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/taskswarm-cli.svg)](https://www.npmjs.com/package/taskswarm-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![PyPI version](https://img.shields.io/pypi/v/taskswarm-cli.svg)](https://pypi.org/project/taskswarm-cli/)
 
+[Install](#install) • [Quickstart](#quickstart) • [What it does](#what-it-does) • [CLI reference](#cli-reference) • [How it compares](#how-it-compares) • [FAQ](#faq)
+
+**Self-hosted event server and CLI that fires a local OS notification and updates a live status page the instant a parallel coding-agent session blocks, needs review, fails, or finishes.**
+
 ![Installing taskswarm-cli from npm, checking its version, then starting the TaskSwarm server and seeing the live status page URL it prints](./docs/demo.gif)
+
+You're running three Claude Code sessions across two repos. One of them hit a permission prompt four minutes ago and has been sitting there ever since, waiting on you. You didn't know, because nothing told you. You just tabbed back to check.
+
+TaskSwarm is a self-hosted event server that fixes that. Every agent session reports its state, and the instant one goes blocked, needs review, fails, or finishes, TaskSwarm fires a local OS notification and updates a live status page. No polling terminals. No account. No cloud dependency.
 
 ## Install
 
@@ -42,16 +46,6 @@ See [python/README.md](./python/README.md) for the Python-specific guide. Both
 distributions speak the same wire protocol (the same event schema, the
 same notification-dedup rule), so a Python-started server and an npm CLI
 reporting into it (or vice versa) work together without issue.
-
-## What it does
-
-- **Push notifications, from a board you don't have to keep open.** The moment a session transitions to `blocked`, `needs-review`, `failed`, or `done`, TaskSwarm fires a native OS notification (`osascript` on macOS, a terminal bell fallback elsewhere). Measured dispatch latency below. None of paperclip, Vibe Kanban, or Multica (see comparison below) do this; all three are boards you have to be looking at.
-- **A live status page that updates over server-sent events, not polling.** One flat table: session, repo, agent type, status, last-event timestamp. No refresh button.
-- **Real Claude Code hook integration, verified against the published hooks reference.** `taskswarm hooks install claude-code` writes `Stop` and `Notification` hook entries into `.claude/settings.json`, pointed at the exact Node binary and CLI script already on disk. It deliberately avoids `npx`; see the code comment in `src/adapters/claude-code-adapter.ts` for why floating registry resolution on every hook fire is a supply-chain risk. One caveat stated plainly: Claude Code's `Stop` hook fires per-turn, not per-task, so a long multi-turn session currently reports `done` after every turn, not just the final one.
-- **A wrapper-script fallback for Codex, Cursor, or anything else.** `taskswarm agent report-status --task <id> --repo <path> --state <state>` is the same primitive the Claude Code adapter calls under the hood. Any script wrapping any CLI agent can call it directly.
-- **A bearer-token-gated local API, bound to loopback by default.** `POST /events` and the live page both require the token TaskSwarm generates on first run (`~/.taskswarm/config.json`, written `0600`). Rotate it with `taskswarm token rotate`.
-- **Agent-native by design.** Every subcommand ships a `--json` flag with a stable schema, including error output, so a script calling this CLI never has to scrape human-formatted text.
-- **ntfy.sh is opt-in, never default.** The only notification channel that leaves your machine, and it's off unless you turn it on. The self-hosted claim holds end to end without it.
 
 ## Quickstart
 
@@ -101,6 +95,19 @@ node dist/cli.js task list
 ```
 
 ![Adding two tasks with taskswarm task add, then listing them with taskswarm task list in human-readable and --json form](./docs/usage.gif)
+
+## What it does
+
+- **Push notifications, from a board you don't have to keep open.** The moment a session transitions to `blocked`, `needs-review`, `failed`, or `done`, TaskSwarm fires a native OS notification (`osascript` on macOS, a terminal bell fallback elsewhere). Measured dispatch latency below. None of paperclip, Vibe Kanban, or Multica (see comparison below) do this; all three are boards you have to be looking at.
+- **A live status page that updates over server-sent events, not polling.** One flat table: session, repo, agent type, status, last-event timestamp. No refresh button.
+- **Real Claude Code hook integration, verified against the published hooks reference.** `taskswarm hooks install claude-code` writes `Stop` and `Notification` hook entries into `.claude/settings.json`, pointed at the exact Node binary and CLI script already on disk. It deliberately avoids `npx`; see the code comment in `src/adapters/claude-code-adapter.ts` for why floating registry resolution on every hook fire is a supply-chain risk. One caveat stated plainly: Claude Code's `Stop` hook fires per-turn, not per-task, so a long multi-turn session currently reports `done` after every turn, not just the final one.
+- **A wrapper-script fallback for Codex, Cursor, or anything else.** `taskswarm agent report-status --task <id> --repo <path> --state <state>` is the same primitive the Claude Code adapter calls under the hood. Any script wrapping any CLI agent can call it directly.
+- **A bearer-token-gated local API, bound to loopback by default.** `POST /events` and the live page both require the token TaskSwarm generates on first run (`~/.taskswarm/config.json`, written `0600`). Rotate it with `taskswarm token rotate`.
+- **Agent-native by design.** Every subcommand ships a `--json` flag with a stable schema, including error output, so a script calling this CLI never has to scrape human-formatted text.
+- **ntfy.sh is opt-in, never default.** The only notification channel that leaves your machine, and it's off unless you turn it on. The self-hosted claim holds end to end without it.
+
+> [!NOTE]
+> The native OS push notification only fires on macOS, via `osascript`. On Linux and Windows, TaskSwarm falls back to a console line plus a terminal bell instead of a system notification, still local, still without ntfy.sh unless you opt in.
 
 ## CLI reference
 
