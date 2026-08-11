@@ -1,3 +1,4 @@
+<!-- mcp-name: io.github.RudrenduPaul/taskswarm -->
 # taskswarm (Python)
 
 Self-hosted event server that pushes a notification the instant a parallel

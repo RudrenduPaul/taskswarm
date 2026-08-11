@@ -6,6 +6,29 @@ JS/TS) and the PyPI package (`taskswarm`, Python) -- since they ship the
 same event schema, event-server behavior, and notification logic; entries
 note which distribution they apply to.
 
+## [Python 0.1.3] - 2026-08-10
+
+Ships a Model Context Protocol server for the Python distribution, so an
+MCP-compatible agent runtime can call taskswarm directly over stdio instead
+of shelling out to the CLI and parsing text itself.
+
+### Added
+
+- `taskswarm/mcp_server.py`: a generic subprocess-wrapper MCP server with a
+  single `run(args: list[str]) -> dict` tool that locates the installed
+  `taskswarm` binary on `PATH` and shells out to it with the given
+  arguments, returning its parsed JSON output. Every failure path (CLI not
+  found, launch failure, timeout, non-zero exit, non-JSON stdout) is caught
+  and returned as `{"error": ...}` instead of raising, so the tool handler
+  can never crash the MCP session. The tool description is populated at
+  import time from the CLI's real `--help` output, with a static fallback
+  if that subprocess call fails.
+- `taskswarm-mcp` console script (installed by the new `mcp` optional
+  dependency group, `pip install "taskswarm-cli[mcp]"`), entry point
+  `taskswarm.mcp_server:main`.
+- `[tool.hatch.build] exclude = [".venv*/"]` in `python/pyproject.toml`, so a
+  stray local virtualenv under `python/` can't get pulled into the sdist.
+
 ## [Python 0.1.2] - 2026-08-08
 
 Fixes a stale-version bug in the Python package's `--version` output.

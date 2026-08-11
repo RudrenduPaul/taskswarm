@@ -1,3 +1,4 @@
+<!-- mcp-name: io.github.RudrenduPaul/taskswarm -->
 # TaskSwarm
 
 [![CI](https://github.com/RudrenduPaul/taskswarm/actions/workflows/ci.yml/badge.svg)](https://github.com/RudrenduPaul/taskswarm/actions/workflows/ci.yml)
@@ -5,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![PyPI version](https://img.shields.io/pypi/v/taskswarm-cli.svg)](https://pypi.org/project/taskswarm-cli/)
 
-[Install](#install) • [Quickstart](#quickstart) • [What it does](#what-it-does) • [CLI reference](#cli-reference) • [How it compares](#how-it-compares) • [FAQ](#faq)
+[Install](#install) • [Quickstart](#quickstart) • [What it does](#what-it-does) • [CLI reference](#cli-reference) • [MCP Server](#mcp-server) • [How it compares](#how-it-compares) • [FAQ](#faq)
 
 **Self-hosted event server and CLI that fires a local OS notification and updates a live status page the instant a parallel coding-agent session blocks, needs review, fails, or finishes.**
 
@@ -141,6 +142,35 @@ Error: could not reach TaskSwarm server at http://127.0.0.1:4173 -- is it runnin
 ```
 
 Both exit non-zero with a plain-English message and no stack trace, including under `--json`.
+
+## MCP Server
+
+TaskSwarm's **Python distribution** ships a [Model Context Protocol](https://modelcontextprotocol.io) server, so an MCP-compatible agent (Claude Desktop, Claude Code, an orchestrator) can call TaskSwarm directly as a tool instead of shelling out to the CLI and parsing text.
+
+```bash
+pip install "taskswarm-cli[mcp]"
+```
+
+It exposes one tool, `run`, a generic subprocess wrapper: pass it the same argument list you'd pass on the command line, and it shells out to the installed `taskswarm` binary, parses the resulting JSON, and returns it. Every failure mode (missing binary, launch error, timeout, non-zero exit, unparseable output) comes back as a plain `{"error": ...}` dict instead of raising, so a bad call can't crash the server.
+
+```python
+run(args=["task", "list", "--json"])
+# -> {"result": [{"id": "84c94aca-...", "title": "Fix flaky test", "repo": "/tmp/x", "created_at": "2026-08-09T17:37:00.949Z", "status": "unknown"}]}
+```
+
+To register it with an MCP-compatible client such as Claude Desktop, add it to the client's server config:
+
+```json
+{
+  "mcpServers": {
+    "taskswarm": {
+      "command": "taskswarm-mcp"
+    }
+  }
+}
+```
+
+This assumes `taskswarm-mcp` is already on `PATH` (installed via the `mcp` extra above). If you installed it somewhere else, replace `"command"` with the full path to the console script. This server is currently Python-only; the npm distribution does not yet ship an MCP server.
 
 ## How it compares
 
