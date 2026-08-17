@@ -1,3 +1,4 @@
+<!-- mcp-name: io.github.RudrenduPaul/taskswarm -->
 # taskswarm (Python)
 
 Self-hosted event server that pushes a notification the instant a parallel
@@ -125,10 +126,11 @@ running.close()
 | `taskswarm hooks install <adapter>` | Install hooks for an agent integration (currently `claude-code`)                                               | `--scope <project\|local\|user>` (default `project`), `--project-dir <path>`, `--json`                                                                                                                                                                                   |
 | `taskswarm hooks claude-code-relay` | Internal: reads a hook payload from stdin and relays it. Installed automatically; not meant to be run by hand. | none                                                                                                                                                                                                                                                                     |
 
-`taskswarm --version` prints `taskswarm 0.1.1`, matching this package's
-`pyproject.toml` version. The `taskswarm-cli` console
-script installed by this package is an identical alias, matching both `bin`
-entries the npm package ships.
+`taskswarm --version` prints the installed package's own version number,
+read live from `pyproject.toml` (so it always matches whatever release you
+actually have installed, rather than a fixed number that would go stale
+here). The `taskswarm-cli` console script installed by this package is an
+identical alias, matching both `bin` entries the npm package ships.
 
 ## How it works
 
