@@ -6,6 +6,30 @@ JS/TS) and the PyPI package (`taskswarm`, Python) -- since they ship the
 same event schema, event-server behavior, and notification logic; entries
 note which distribution they apply to.
 
+## [npm 0.2.0] - 2026-09-24
+
+### Changed
+
+- Runtime dependencies upgraded: `zod` 3 to 4 (`^4.6.5`) and `commander` 12
+  to 13 (`^13.1.0`).
+- Development tooling upgraded (eslint 10, vitest 5, TypeScript 6). These
+  tools need a recent Node release, so contributors should use Node 20 or
+  newer. The published package `engines` field is unchanged (`>=18.18.0`).
+- Publishing to npm now runs from GitHub Actions through npm Trusted
+  Publishing (OIDC), with no long-lived npm token.
+
+### Security
+
+- Replaced backtracking regexes in bearer-token parsing and terminal
+  sanitizing (ReDoS).
+
+## [Python 0.1.5] - 2026-09-24
+
+### Security
+
+- Replaced backtracking regexes in bearer-token parsing and terminal
+  sanitizing (ReDoS).
+
 ## [Python 0.1.3] - 2026-08-10
 
 Ships a Model Context Protocol server for the Python distribution, so an
