@@ -19,7 +19,7 @@ _BEL = chr(7)
 # untrusted /events caller, so this fallback -- unlike the escaped
 # AppleScript path -- must not pass them through raw.
 _CONTROL_SEQUENCE_PATTERN = re.compile(
-    r"\x1b\[[0-9;]*[a-zA-Z]|\x1b\][^\x07]*(\x07|\x1b\\)|[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]"
+    r"\x1b\[[0-9;]*[a-zA-Z]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]"
 )
 
 

@@ -31,3 +31,22 @@ def test_extract_bearer_token_wrong_scheme():
 
 def test_extract_bearer_token_empty_string():
     assert extract_bearer_token("") is None
+
+
+def test_extract_bearer_token_case_and_spacing():
+    assert extract_bearer_token("BEARER   abc123") == "abc123"
+
+
+def test_extract_bearer_token_rejects_malformed():
+    assert extract_bearer_token("Bearer") is None
+    assert extract_bearer_token("Bearerabc123") is None
+    assert extract_bearer_token("Bearer    ") is None
+    assert extract_bearer_token("Bearer abc\nDEF") is None
+
+
+def test_extract_bearer_token_hostile_whitespace_is_fast():
+    import time
+
+    start = time.monotonic()
+    assert extract_bearer_token("Bearer" + " " * 200_000 + "\n") is None
+    assert time.monotonic() - start < 1.0

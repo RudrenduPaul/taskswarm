@@ -13,9 +13,20 @@ export function tokensMatch(provided: string, expected: string): boolean {
   return timingSafeEqual(a, b);
 }
 
+const BEARER_SCHEME = 'bearer';
+
 /** Extracts a bearer token from an Authorization header value, if present. */
 export function extractBearerToken(authorizationHeader: string | undefined): string | undefined {
   if (!authorizationHeader) return undefined;
-  const match = /^Bearer\s+(.+)$/i.exec(authorizationHeader);
-  return match?.[1];
+  // Linear-time parse (no backtracking regex): scheme, at least one
+  // whitespace character, then a non-empty single-line token.
+  if (authorizationHeader.length <= BEARER_SCHEME.length) return undefined;
+  if (authorizationHeader.slice(0, BEARER_SCHEME.length).toLowerCase() !== BEARER_SCHEME) {
+    return undefined;
+  }
+  const rest = authorizationHeader.slice(BEARER_SCHEME.length);
+  if (rest.trimStart().length === rest.length) return undefined;
+  const token = rest.trimStart();
+  if (token.length === 0 || /[\r\n\u2028\u2029]/.test(token)) return undefined;
+  return token;
 }

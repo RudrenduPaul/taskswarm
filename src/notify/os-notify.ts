@@ -31,7 +31,7 @@ export function sendOsNotification(title: string, message: string): void {
 // AppleScript path -- must not pass them through raw.
 const CONTROL_SEQUENCE_PATTERN =
   // eslint-disable-next-line no-control-regex -- intentional: stripping control chars is the point
-  /\x1b\[[0-9;]*[a-zA-Z]|\x1b\][^\x07]*(\x07|\x1b\\)|[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g;
+  /\x1b\[[0-9;]*[a-zA-Z]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g;
 
 function sanitizeForTerminal(value: string): string {
   return value.replace(CONTROL_SEQUENCE_PATTERN, '');
