@@ -90,6 +90,7 @@ function acquireLock(lockPath: string): void {
         throw new Error(
           `timed out waiting for the tasks registry lock at ${lockPath} ` +
             '(another taskswarm process may be stuck)',
+          { cause: error },
         );
       }
       sleepSyncMs(LOCK_RETRY_DELAY_MS);
